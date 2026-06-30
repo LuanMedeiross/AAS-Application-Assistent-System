@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Application Assistant{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root { --bg:#0f1115; --panel:#171a21; --line:#272b34; --fg:#e6e8ec; --muted:#9aa0ab; --accent:#3a7afe; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, Segoe UI, Roboto, sans-serif; }
+    header { padding:16px 24px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; }
+    header h1 { font-size:16px; margin:0; }
+    header nav a { color:var(--muted); text-decoration:none; margin-left:16px; }
+    main { max-width:880px; margin:0 auto; padding:24px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:20px; }
+    label { display:block; color:var(--muted); font-size:13px; margin:12px 0 4px; }
+    input, textarea, select { width:100%; background:#0c0e12; color:var(--fg); border:1px solid var(--line);
+      border-radius:7px; padding:9px 11px; font:inherit; }
+    textarea { min-height:90px; resize:vertical; }
+    .row { display:flex; gap:16px; } .row > div { flex:1; }
+    button { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:10px 16px;
+      font:inherit; cursor:pointer; }
+    button.ghost { background:transparent; border:1px solid var(--line); color:var(--fg); }
+    .hint { color:var(--muted); font-size:13px; }
+    .ok { color:#54d18c; }
+    .tag { display:inline-block; background:#0c0e12; border:1px solid var(--line); border-radius:14px;
+      padding:3px 10px; margin:3px 4px 0 0; font-size:13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Application Assistant</h1>
+    <nav><a href="/profile">Profile</a></nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

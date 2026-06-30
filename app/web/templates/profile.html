@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Profile — Application Assistant{% endblock %}
+{% block content %}
+<form class="panel" hx-post="/profile" hx-target="#save-status" hx-swap="innerHTML">
+  <div class="row">
+    <div><label>Nome completo</label><input name="full_name" value="{{ p.full_name }}"></div>
+    <div><label>Email</label><input name="email" value="{{ p.email }}"></div>
+  </div>
+  <div class="row">
+    <div><label>Telefone</label><input name="phone" value="{{ p.phone }}"></div>
+    <div><label>Localização</label><input name="location" value="{{ p.location }}"></div>
+  </div>
+  <div class="row">
+    <div><label>LinkedIn</label><input name="linkedin_url" value="{{ p.linkedin_url }}"></div>
+    <div><label>Portfólio</label><input name="portfolio_url" value="{{ p.portfolio_url }}"></div>
+  </div>
+
+  <label>Senioridade (filtra a busca de vagas)</label>
+  <div class="row" style="align-items:center">
+    <div style="flex:0 0 220px">
+      <select name="seniority">
+        {% for s in ["entry","junior","mid","senior"] %}
+        <option value="{{ s }}" {% if p.seniority==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="button" class="ghost"
+        hx-post="/profile/suggest-seniority" hx-target="#seniority-hint" hx-swap="innerHTML">
+        Sugerir com IA
+      </button>
+      <span id="seniority-hint" class="hint"></span>
+    </div>
+  </div>
+
+  <label>Resumo profissional</label>
+  <textarea name="summary">{{ p.summary }}</textarea>
+
+  <label>Cargos-alvo (um por linha)</label>
+  <textarea name="target_roles">{{ p.target_roles | join('\n') }}</textarea>
+
+  <label>Skills (uma por linha)</label>
+  <textarea name="skills">{{ p.skills | join('\n') }}</textarea>
+
+  <div style="margin-top:18px; display:flex; gap:12px; align-items:center">
+    <button type="submit">Salvar</button>
+    <span id="save-status"></span>
+  </div>
+</form>
+
+<div class="panel">
+  <div class="hint">Experiências, formação e certificações (do CV-mestre)</div>
+  {% for e in p.experiences %}
+    <p><strong>{{ e.title }}</strong> — {{ e.company }}
+       <span class="hint">({{ e.start }} – {{ e.end or 'atual' }})</span></p>
+  {% endfor %}
+  <div style="margin-top:8px">
+    {% for c in p.certifications %}<span class="tag">{{ c }}</span>{% endfor %}
+  </div>
+  <div style="margin-top:8px">
+    {% for ed in p.education %}<div class="hint">{{ ed.degree }} — {{ ed.school }}</div>{% endfor %}
+  </div>
+</div>
+{% endblock %}

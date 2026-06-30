@@ -1,0 +1,19 @@
+# Application Assistant — dependências
+# Fase 1 usa o subconjunto leve (web/db/ia). playwright/curl_cffi/weasyprint/2captcha
+# entram nas fases seguintes (navegador, captcha, PDF), mas ficam declarados aqui.
+
+fastapi
+uvicorn[standard]
+sqlmodel
+jinja2
+python-multipart
+python-dotenv
+openai
+
+# Fase 2+ (harness de navegador / captcha)
+playwright
+curl_cffi
+2captcha-python
+
+# Fase 5 (PDF)
+weasyprint

@@ -1,0 +1,19 @@
+# Segredos e dados locais (NUNCA commitar)
+.env
+data/
+*.db
+
+# Sessões de plataforma (cookies) — nunca versionar
+**/sessions/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
