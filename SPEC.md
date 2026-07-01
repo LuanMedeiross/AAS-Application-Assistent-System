@@ -136,7 +136,9 @@ não importa `web/`, usa os schemas normalizados, e a assinatura de `discover`/`
 
 - **API (Gupy/InHire):** `discovery` chama a API pública → `JobPosting[]`. `apply` monta o
   payload de candidatura rápida (CV em base64 + respostas das perguntas) → para antes do POST
-  final em modo manual.
+  final em modo manual. **Gupy discovery confirmado:**
+  `GET employability-portal.gupy.io/api/v1/jobs?jobName=<kw>&offset=&limit=` (sem auth) — ver
+  `docs/plataformas.md`.
 - **Browser (Indeed/Catho/LinkedIn):** harness abre contexto com `storage_state` + stealth →
   `discovery` navega busca → `apply` extrai `FormField[]`, `form_agent` mapeia respostas,
   Playwright preenche e anexa CV → para antes do submit. Bloqueio → `captcha.py`.

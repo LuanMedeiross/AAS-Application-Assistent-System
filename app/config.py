@@ -17,8 +17,10 @@ class Settings:
     # Segredos / IA
     deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
     deepseek_base_url: str = "https://api.deepseek.com"
-    model_rank: str = "deepseek-reasoner"   # ranking / decisão
-    model_generate: str = "deepseek-chat"   # geração de texto (CV/carta)
+    # Modelo mais forte da DeepSeek (R1, raciocínio) para tudo — ranking e geração.
+    # reasoner não suporta response_format=json_object; o ai/deepseek._extract_json cobre isso.
+    model_rank: str = "deepseek-reasoner"
+    model_generate: str = "deepseek-reasoner"
 
     captcha_api_key: str = os.getenv("CAPTCHA_API_KEY", "")
 

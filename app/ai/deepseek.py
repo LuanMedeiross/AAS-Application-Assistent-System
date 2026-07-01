@@ -6,6 +6,7 @@ A chave só é exigida quando há chamada real; importar este módulo não falha
 from __future__ import annotations
 
 import json
+import re
 from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel
@@ -16,6 +17,29 @@ from ..core.schemas import SeniorityResult
 T = TypeVar("T", bound=BaseModel)
 
 _client = None
+
+
+def _extract_json(content: str) -> dict:
+    """Extrai um objeto JSON da resposta do modelo, tolerante a fences/markdown.
+
+    deepseek-reasoner não suporta response_format=json_object, então a saída pode vir com
+    ```json ... ``` ou texto ao redor. Tentamos json.loads direto; senão, o primeiro {...}.
+    """
+    content = content.strip()
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+    if fenced:
+        try:
+            return json.loads(fenced.group(1))
+        except json.JSONDecodeError:
+            pass
+    start, end = content.find("{"), content.rfind("}")
+    if start != -1 and end > start:
+        return json.loads(content[start : end + 1])
+    raise ValueError(f"Resposta sem JSON reconhecível: {content[:200]!r}")
 
 
 def _get_client():
@@ -44,17 +68,21 @@ def chat_json(
 ) -> dict | T:
     """Chama o DeepSeek pedindo JSON. Se `schema` for dado, valida e retorna a instância."""
     client = _get_client()
+    model = model or settings.model_generate
+    kwargs: dict = {"temperature": temperature}
+    # reasoner não suporta response_format=json_object; chat suporta.
+    if "reasoner" not in model:
+        kwargs["response_format"] = {"type": "json_object"}
     resp = client.chat.completions.create(
-        model=model or settings.model_generate,
+        model=model,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        response_format={"type": "json_object"},
-        temperature=temperature,
+        **kwargs,
     )
     content = resp.choices[0].message.content or "{}"
-    data = json.loads(content)
+    data = _extract_json(content)
     if schema is not None:
         return schema.model_validate(data)
     return data

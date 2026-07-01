@@ -54,5 +54,23 @@ breaker (`runner.py`). Scripts: `login.py` (login manual → sessão), `apply_ha
 .\.venv\Scripts\python.exe scripts\login.py gupy
 ```
 
-Próximo: **Fase 3** — primeiro plugin ponta a ponta (Gupy, canal `api`): discovery + apply +
-manifest, registrado no registry. Antes de codar: confirmar o mecanismo de discovery da Gupy.
+**Fase 3 em andamento** — Plugin Gupy (canal `api`). **Discovery concluído e verificado** com
+dados reais: `app/platforms/gupy/` (manifest + discovery) usa o endpoint público
+`employability-portal.gupy.io/api/v1/jobs?jobName=`. Testar:
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+.\.venv\Scripts\python.exe scripts\apply_harness.py gupy --keywords "appsec,pentest,red team"
+```
+Falta o **apply** da Gupy (exige a sessão logada do candidato — rodar `scripts/login.py gupy`).
+
+**Fase 4 (ranking) concluída** — `ai/ranker.py` (DeepSeek `reasoner`, o modelo mais forte)
+pontua cada vaga 0–100 vs. perfil, penalizando descompasso de senioridade. Fluxo completo em
+`scripts/discover_rank.py` (discover → salva no DB → ranqueia) e página `/jobs` no dashboard
+ordenada por score.
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+.\.venv\Scripts\python.exe scripts\discover_rank.py gupy --keywords "appsec,pentest,red team"
+# depois abra http://127.0.0.1:8000/jobs
+```
+
+Próximo: **Fase 5** (geração de CV/carta sob medida, ATS + HUMANIZE, PDF) e apply da Gupy.

@@ -19,6 +19,30 @@ from app.core.session import has_session  # noqa: E402
 from app.platforms import REGISTRY  # noqa: E402
 
 
+def _keywords_from_args() -> list[str]:
+    if "--keywords" in sys.argv:
+        raw = sys.argv[sys.argv.index("--keywords") + 1]
+        return [k.strip() for k in raw.split(",") if k.strip()]
+    return ["appsec", "pentest", "segurança da informação"]
+
+
+def discovery_dry_run(platform: str, manifest: dict) -> None:
+    if manifest.get("channel") != "api":
+        print(f"(dry-run de discovery só implementado p/ canal 'api'; {platform} é "
+              f"'{manifest.get('channel')}')")
+        return
+    from importlib import import_module
+
+    discover = import_module(f"app.platforms.{platform}.discovery").discover
+    keywords = _keywords_from_args()
+    print(f"[dry-run] {platform} discovery | keywords={keywords}")
+    jobs = discover(keywords, limit=5, max_pages=1)
+    print(f"[dry-run] {len(jobs)} vaga(s) encontrada(s). Amostra:")
+    for j in jobs[:8]:
+        print(f"  - {j.title[:55]:55} | {j.company[:22]:22} | {j.location[:18]:18} | {j.url[:40]}")
+    print("[dry-run] OK (nada foi enviado).")
+
+
 def browser_smoke(platform: str) -> None:
     print(f"[smoke] plataforma={platform} | sessão salva: {has_session(platform)}")
     with BrowserHarness(headless=True) as h:
@@ -47,8 +71,7 @@ def main() -> None:
         browser_smoke(platform)
         return
 
-    # Fase 3+: plugin existe → dry-run do discover (não implementado até a Fase 3)
-    print(f"Plugin '{platform}' encontrado — dry-run ainda não implementado (Fase 3).")
+    discovery_dry_run(platform, plugin)
 
 
 if __name__ == "__main__":

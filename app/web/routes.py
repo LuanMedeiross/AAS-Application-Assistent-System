@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from ..db import get_session
-from .repo import get_or_create_profile
+from .repo import get_or_create_profile, jobs_by_score
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -59,6 +59,12 @@ def profile_save(
     session.commit()
     session.refresh(profile)
     return templates.TemplateResponse(request, "_saved.html", {"p": profile})
+
+
+@router.get("/jobs", response_class=HTMLResponse)
+def jobs_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    jobs = jobs_by_score(session)
+    return templates.TemplateResponse(request, "jobs.html", {"jobs": jobs})
 
 
 @router.post("/profile/suggest-seniority", response_class=HTMLResponse)

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Vagas — Application Assistant{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="hint">
+    {{ jobs|length }} vaga(s). Ordenadas por score (aderência ao seu perfil).
+    Rode <code>scripts/discover_rank.py</code> para descobrir e ranquear novas.
+  </div>
+</div>
+
+{% for j in jobs %}
+<div class="panel" style="display:flex; gap:16px; align-items:flex-start">
+  <div style="flex:0 0 56px; text-align:center">
+    <div style="font-size:22px; font-weight:700">{{ j.score if j.score is not none else '–' }}</div>
+    <div class="hint" style="font-size:11px">score</div>
+  </div>
+  <div style="flex:1">
+    <div style="font-weight:600">{{ j.title }}</div>
+    <div class="hint">{{ j.company }} · {{ j.location }} · {{ j.platform }}</div>
+    {% if j.score_reason %}<div style="margin-top:6px">{{ j.score_reason }}</div>{% endif %}
+    <div style="margin-top:8px">
+      <a href="{{ j.url }}" target="_blank"><button class="ghost">Abrir vaga</button></a>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="panel hint">Nenhuma vaga ainda. Rode:
+  <code>python scripts/discover_rank.py gupy --keywords "appsec,pentest"</code>
+</div>
+{% endfor %}
+{% endblock %}
