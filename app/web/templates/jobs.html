@@ -2,38 +2,28 @@
 {% block title %}Vagas — Application Assistant{% endblock %}
 {% block content %}
 <div class="panel">
-  <div class="hint">
-    {{ jobs|length }} vaga(s). Ordenadas por score (aderência ao seu perfil).
-    Rode <code>scripts/discover_rank.py</code> para descobrir e ranquear novas.
-  </div>
+  <form hx-post="/jobs/search" hx-target="#joblist" hx-swap="innerHTML"
+        hx-indicator="#search-spin" hx-disabled-elt="find button"
+        style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+    <input name="keywords" value="{{ default_keywords }}"
+           placeholder="palavras-chave separadas por vírgula (ex.: pentest, appsec)"
+           style="flex:1; min-width:240px">
+    <button type="submit">Buscar vagas</button>
+    <span id="search-spin" class="htmx-indicator hint">⏳ descobrindo + ranqueando… (pode levar alguns minutos)</span>
+  </form>
 </div>
 
-{% for j in jobs %}
-<div class="panel" style="display:flex; gap:16px; align-items:flex-start">
-  <div style="flex:0 0 56px; text-align:center">
-    <div style="font-size:22px; font-weight:700">{{ j.score if j.score is not none else '–' }}</div>
-    <div class="hint" style="font-size:11px">score</div>
-  </div>
-  <div style="flex:1">
-    <div style="font-weight:600">{{ j.title }}</div>
-    <div class="hint">{{ j.company }} · {{ j.location }} · {{ j.platform }}</div>
-    {% if j.score_reason %}<div style="margin-top:6px">{{ j.score_reason }}</div>{% endif %}
-    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-      <a href="{{ j.url }}" target="_blank"><button class="ghost">Abrir vaga</button></a>
-      {% if j.id in apps %}
-        <span class="tag">CV/carta gerados ({{ apps[j.id].language }})</span>
-        <a href="/jobs/{{ j.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
-        <button class="ghost" hx-get="/jobs/{{ j.id }}/cover" hx-target="#cover-{{ j.id }}" hx-swap="innerHTML">Ver carta</button>
-      {% else %}
-        <span class="hint">Gerar via <code>scripts/tailor_job.py {{ j.id }}</code></span>
-      {% endif %}
-    </div>
-    <div id="cover-{{ j.id }}"></div>
-  </div>
+<div class="panel">
+  <form hx-post="/jobs/tailor-all" hx-target="#joblist" hx-swap="innerHTML"
+        hx-indicator="#batch-spin" hx-disabled-elt="find button"
+        hx-confirm="Gerar CV para todas as vagas sem CV com score ≥ o mínimo? Pode demorar (uma chamada de IA por vaga)."
+        style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0">
+    <span class="hint">Gerar CV em lote — score mínimo</span>
+    <input type="number" name="min_score" value="30" min="0" max="100" style="width:72px">
+    <button type="submit">Gerar p/ todas sem CV</button>
+    <span id="batch-spin" class="htmx-indicator hint">⏳ gerando em lote… (pode demorar bastante)</span>
+  </form>
 </div>
-{% else %}
-<div class="panel hint">Nenhuma vaga ainda. Rode:
-  <code>python scripts/discover_rank.py gupy --keywords "appsec,pentest"</code>
-</div>
-{% endfor %}
+
+<div id="joblist">{% include "_job_list.html" %}</div>
 {% endblock %}

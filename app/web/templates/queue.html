@@ -3,10 +3,8 @@
 {% block content %}
 <div class="panel">
   <div class="hint">
-    Fila de aprovação. Nada é enviado sem sua aprovação.
-    Envio real:
-    {% if allow_real %}<span class="ok">HABILITADO (ALLOW_REAL_SUBMIT=true)</span>
-    {% else %}<b>DESLIGADO</b> — "Aprovar" roda em dry-run. Ligue com ALLOW_REAL_SUBMIT=true no .env.{% endif %}
+    Fila de candidaturas. <b>Candidatar-se</b> dispara a candidatura automática (abre o navegador
+    logado, preenche e envia). Confirme no diálogo — nada é enviado sem sua confirmação.
   </div>
 </div>
 
@@ -25,9 +23,15 @@
         <a href="/jobs/{{ job.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
         <button class="ghost" hx-get="/jobs/{{ job.id }}/cover" hx-target="#qc-{{ job.id }}">Ver carta</button>
         <button class="ghost" hx-post="/jobs/{{ job.id }}/prepare" hx-target="#qs-{{ job.id }}">Preparar/validar</button>
-        <button hx-post="/jobs/{{ job.id }}/approve" hx-target="#qs-{{ job.id }}"
-                hx-confirm="Confirmar aprovação desta candidatura?">Aprovar e enviar</button>
+        {% if job.status == 'applied' %}
+          <span class="tag ok">✅ Candidatura enviada</span>
+        {% else %}
+          <button hx-post="/jobs/{{ job.id }}/apply" hx-target="#qs-{{ job.id }}"
+                  hx-indicator="#qspin-{{ job.id }}" hx-disabled-elt="this"
+                  hx-confirm="Deseja continuar com a candidatura para {{ job.company }}?">Candidatar-se</button>
+        {% endif %}
         <button class="ghost" hx-post="/jobs/{{ job.id }}/reject" hx-target="#qs-{{ job.id }}">Rejeitar</button>
+        <span id="qspin-{{ job.id }}" class="htmx-indicator hint">⏳ candidatando (abre o navegador)…</span>
         <span id="qs-{{ job.id }}" class="hint"></span>
       </div>
       <div id="qc-{{ job.id }}"></div>

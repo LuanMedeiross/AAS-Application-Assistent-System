@@ -1,0 +1,11 @@
+{% if a %}
+  <a href="/jobs/{{ j.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
+  <button class="ghost" hx-get="/jobs/{{ j.id }}/cover" hx-target="#cover-{{ j.id }}" hx-swap="innerHTML">Ver carta</button>
+  <button class="ghost" hx-post="/jobs/{{ j.id }}/tailor" hx-target="#actions-{{ j.id }}"
+          hx-swap="innerHTML" hx-indicator="#spin-{{ j.id }}" hx-disabled-elt="this">Regerar</button>
+  {% if j.status == 'applied' %}<span class="tag ok">✅ Candidatura enviada</span>{% endif %}
+{% else %}
+  <button hx-post="/jobs/{{ j.id }}/tailor" hx-target="#actions-{{ j.id }}"
+          hx-swap="innerHTML" hx-indicator="#spin-{{ j.id }}" hx-disabled-elt="this">Gerar currículo</button>
+{% endif %}
+<span id="spin-{{ j.id }}" class="htmx-indicator hint">⏳ processando…</span>

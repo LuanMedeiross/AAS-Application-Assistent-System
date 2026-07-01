@@ -1,0 +1,39 @@
+<div class="panel">
+  <div class="hint">
+    {{ jobs|length }} vaga(s). Ordenadas por score (aderência ao seu perfil).
+    {% if search_stats %}
+      <span class="ok">Busca: {{ search_stats.found }} encontradas ·
+        {{ search_stats.discarded }} afirmativa(s) descartada(s) ·
+        {{ search_stats.ranked }} nova(s) ranqueada(s).</span>
+    {% endif %}
+    {% if batch_stats %}
+      <span class="ok">Lote: {{ batch_stats.generated }} CV(s) gerado(s) de
+        {{ batch_stats.candidates }} (score ≥ {{ batch_stats.min_score }})
+        {%- if batch_stats.failed %} · {{ batch_stats.failed }} falha(s){% endif %}.</span>
+    {% endif %}
+    {% if search_error %}<span style="color:#e06">Falha: {{ search_error }}</span>{% endif %}
+  </div>
+</div>
+
+{% for j in jobs %}
+<div class="panel" style="display:flex; gap:16px; align-items:flex-start">
+  <div style="flex:0 0 56px; text-align:center">
+    <div style="font-size:22px; font-weight:700">{{ j.score if j.score is not none else '–' }}</div>
+    <div class="hint" style="font-size:11px">score</div>
+  </div>
+  <div style="flex:1">
+    <div style="font-weight:600">{{ j.title }}</div>
+    <div class="hint">{{ j.company }} · {{ j.location }} · {{ j.platform }}</div>
+    {% if j.score_reason %}<div style="margin-top:6px">{{ j.score_reason }}</div>{% endif %}
+    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+      <a href="{{ j.url }}" target="_blank"><button class="ghost">Abrir vaga</button></a>
+      <span id="actions-{{ j.id }}" style="display:contents">
+        {% set a = apps.get(j.id) %}{% include "_job_actions.html" %}
+      </span>
+    </div>
+    <div id="cover-{{ j.id }}"></div>
+  </div>
+</div>
+{% else %}
+<div class="panel hint">Nenhuma vaga ainda. Clique em <b>Buscar vagas</b> acima.</div>
+{% endfor %}

@@ -14,6 +14,7 @@ from ..config import settings
 from ..core import audit
 from ..db import get_session
 from ..models import Application, Job
+from ..services import apply_application, batch_tailor, discover_and_rank, tailor_application
 from .repo import get_or_create_profile, jobs_by_score
 
 
@@ -107,7 +108,83 @@ def profile_save(
 def jobs_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     jobs = jobs_by_score(session)
     apps = {a.job_id: a for a in session.exec(select(Application)).all()}
-    return templates.TemplateResponse(request, "jobs.html", {"jobs": jobs, "apps": apps})
+    profile = get_or_create_profile(session)
+    default_kw = ", ".join(profile.target_roles) if profile.target_roles else \
+        "pentest, appsec, red team, segurança da informação"
+    return templates.TemplateResponse(
+        request, "jobs.html",
+        {"jobs": jobs, "apps": apps, "allow_real": settings.allow_real_submit,
+         "default_keywords": default_kw},
+    )
+
+
+@router.post("/jobs/search", response_class=HTMLResponse)
+def jobs_search(request: Request, keywords: str = Form(""),
+                session: Session = Depends(get_session)) -> HTMLResponse:
+    """Descobre + ranqueia vagas (Gupy) via serviço — aposenta o scripts/discover_rank.py.
+    Devolve a lista atualizada (HTMX). Síncrono: pode levar alguns minutos na 1ª busca."""
+    profile = get_or_create_profile(session)
+    kws = [k.strip() for k in keywords.split(",") if k.strip()] or profile.target_roles \
+        or ["segurança da informação"]
+    ctx = {"allow_real": settings.allow_real_submit}
+    try:
+        ctx["search_stats"] = discover_and_rank(session, "gupy", kws, profile)
+    except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
+        ctx["search_error"] = str(exc)
+    ctx["jobs"] = jobs_by_score(session)
+    ctx["apps"] = {a.job_id: a for a in session.exec(select(Application)).all()}
+    return templates.TemplateResponse(request, "_job_list.html", ctx)
+
+
+@router.post("/jobs/tailor-all", response_class=HTMLResponse)
+def jobs_tailor_all(request: Request, min_score: int = Form(0),
+                    session: Session = Depends(get_session)) -> HTMLResponse:
+    """Gera CV em lote para vagas com score >= min_score ainda sem CV. Devolve a lista atualizada."""
+    ctx = {"allow_real": settings.allow_real_submit}
+    try:
+        ctx["batch_stats"] = batch_tailor(session, min_score)
+    except Exception as exc:  # noqa: BLE001
+        ctx["search_error"] = str(exc)
+    ctx["jobs"] = jobs_by_score(session)
+    ctx["apps"] = {a.job_id: a for a in session.exec(select(Application)).all()}
+    return templates.TemplateResponse(request, "_job_list.html", ctx)
+
+
+@router.post("/jobs/{job_id}/tailor", response_class=HTMLResponse)
+def job_tailor(job_id: int, request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    """Gera CV+carta sob medida via serviço (mesmo processo — sem shell-out). Devolve o bloco
+    de ações atualizado (HTMX). O job_id vem tipado do path, sem superfície de injeção."""
+    job = session.get(Job, job_id)
+    if job is None:
+        return HTMLResponse('<span class="hint">Vaga não encontrada.</span>', status_code=404)
+    try:
+        app_row, _ = tailor_application(session, job)
+    except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
+        return HTMLResponse(
+            f'<span class="hint">Falha ao gerar (verifique DEEPSEEK_API_KEY): {exc}</span>'
+        )
+    audit.log(session, "tailor", platform=job.platform, job_id=job.id,
+              detail={"language": app_row.language})
+    return templates.TemplateResponse(
+        request, "_job_actions.html",
+        {"j": job, "a": app_row, "allow_real": settings.allow_real_submit},
+    )
+
+
+@router.post("/jobs/{job_id}/apply", response_class=HTMLResponse)
+def job_apply(job_id: int, request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    """Candidata-se via serviço (mesmo processo, abre o navegador logado). Sem shell-out.
+    Gated por ALLOW_REAL_SUBMIT; a UI confirma envio real com hx-confirm antes de disparar."""
+    job = session.get(Job, job_id)
+    if job is None:
+        return HTMLResponse('<span class="hint">Vaga não encontrada.</span>', status_code=404)
+    try:
+        result = apply_application(session, job)
+    except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
+        return HTMLResponse(f'<span class="hint">❌ Falha ao candidatar: {exc}</span>')
+    icon = {"sent": "✅", "dry_run": "🟡", "needs_review": "⛔",
+            "cancelled": "✋", "error": "❌"}.get(result.get("outcome"), "•")
+    return HTMLResponse(f'<span class="hint">{icon} {result.get("message", "")}</span>')
 
 
 @router.get("/jobs/{job_id}/cv.pdf")
