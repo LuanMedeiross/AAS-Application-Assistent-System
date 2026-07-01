@@ -19,10 +19,12 @@ class RankResult(BaseModel):
 class TailoredCV(BaseModel):
     summary: str = ""
     skills: list[str] = []
+    soft_skills: list[str] = []
     experiences: list[dict] = []
     projects: list[dict] = []
     education: list[dict] = []
     certifications: list[str] = []
+    achievements: list[str] = []
 
 
 class TailorResult(BaseModel):

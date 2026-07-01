@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Fila de aprovação — Application Assistant{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="hint">
+    Fila de aprovação. Nada é enviado sem sua aprovação.
+    Envio real:
+    {% if allow_real %}<span class="ok">HABILITADO (ALLOW_REAL_SUBMIT=true)</span>
+    {% else %}<b>DESLIGADO</b> — "Aprovar" roda em dry-run. Ligue com ALLOW_REAL_SUBMIT=true no .env.{% endif %}
+  </div>
+</div>
+
+{% for job, app in items %}
+<div class="panel">
+  <div style="display:flex; gap:14px; align-items:flex-start">
+    <div style="flex:0 0 48px; text-align:center">
+      <div style="font-size:20px; font-weight:700">{{ job.score if job.score is not none else '–' }}</div>
+      <div class="hint" style="font-size:11px">score</div>
+    </div>
+    <div style="flex:1">
+      <div style="font-weight:600">{{ job.title }}</div>
+      <div class="hint">{{ job.company }} · {{ job.location }} · {{ job.platform }}
+        · status: <b>{{ job.status }}</b>{% if app.result %} · envio: {{ app.result }}{% endif %}</div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <a href="/jobs/{{ job.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
+        <button class="ghost" hx-get="/jobs/{{ job.id }}/cover" hx-target="#qc-{{ job.id }}">Ver carta</button>
+        <button class="ghost" hx-post="/jobs/{{ job.id }}/prepare" hx-target="#qs-{{ job.id }}">Preparar/validar</button>
+        <button hx-post="/jobs/{{ job.id }}/approve" hx-target="#qs-{{ job.id }}"
+                hx-confirm="Confirmar aprovação desta candidatura?">Aprovar e enviar</button>
+        <button class="ghost" hx-post="/jobs/{{ job.id }}/reject" hx-target="#qs-{{ job.id }}">Rejeitar</button>
+        <span id="qs-{{ job.id }}" class="hint"></span>
+      </div>
+      <div id="qc-{{ job.id }}"></div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="panel hint">Nada na fila. Gere um CV com <code>scripts/tailor_job.py</code> primeiro.</div>
+{% endfor %}
+{% endblock %}

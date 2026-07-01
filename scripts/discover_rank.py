@@ -31,11 +31,10 @@ def main() -> None:
     if platform not in REGISTRY:
         raise SystemExit(f"Plataforma sem plugin: {platform}. Disponíveis: {list(REGISTRY)}")
     keywords = [k.strip() for k in _arg("--keywords", "appsec,pentest,red team,segurança da informação").split(",") if k.strip()]
-    limit = int(_arg("--limit", "8"))
 
     discover = import_module(f"app.platforms.{platform}.discovery").discover
     print(f"Descobrindo em {platform} | keywords={keywords}")
-    postings = discover(keywords, limit=limit, max_pages=1)
+    postings = discover(keywords)  # cada plugin usa seus próprios defaults (limite/tenants)
     print(f"  {len(postings)} vaga(s) encontrada(s).")
 
     init_db()

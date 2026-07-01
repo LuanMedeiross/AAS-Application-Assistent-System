@@ -30,6 +30,8 @@
 
   {% if cv.skills %}<h2>{{ t.skills }}</h2><div class="skills">{{ cv.skills | join(' · ') }}</div>{% endif %}
 
+  {% if cv.soft_skills %}<h2>{{ t.soft_skills }}</h2><div class="skills">{{ cv.soft_skills | join(' · ') }}</div>{% endif %}
+
   {% if cv.experiences %}<h2>{{ t.experience }}</h2>
     {% for e in cv.experiences %}
     <div class="item">
@@ -60,6 +62,10 @@
 
   {% if cv.certifications %}<h2>{{ t.certifications }}</h2>
     <ul>{% for cert in cv.certifications %}<li>{{ cert }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if cv.achievements %}<h2>{{ t.achievements }}</h2>
+    <ul>{% for a in cv.achievements %}<li>{{ a }}</li>{% endfor %}</ul>
   {% endif %}
 </body>
 </html>

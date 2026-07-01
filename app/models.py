@@ -34,6 +34,7 @@ class Profile(SQLModel, table=True):
     target_roles: list = Field(default_factory=list, sa_column=Column(JSON))
     languages: list = Field(default_factory=list, sa_column=Column(JSON))
     skills: list = Field(default_factory=list, sa_column=Column(JSON))
+    soft_skills: list = Field(default_factory=list, sa_column=Column(JSON))
     experiences: list = Field(default_factory=list, sa_column=Column(JSON))
     projects: list = Field(default_factory=list, sa_column=Column(JSON))
     education: list = Field(default_factory=list, sa_column=Column(JSON))
@@ -57,6 +58,7 @@ class Profile(SQLModel, table=True):
             "target_roles": self.target_roles,
             "languages": self.languages,
             "skills": self.skills,
+            "soft_skills": self.soft_skills,
             "experiences": self.experiences,
             "projects": self.projects,
             "education": self.education,

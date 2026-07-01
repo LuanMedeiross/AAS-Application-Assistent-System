@@ -18,12 +18,15 @@ _env = Environment(
 
 # Rótulos de seção por idioma (o conteúdo já vem no idioma da vaga; só os títulos precisam disso).
 SECTION_LABELS = {
-    "pt": {"summary": "Resumo", "skills": "Competências", "experience": "Experiência",
-           "projects": "Projetos", "education": "Formação", "certifications": "Certificações"},
-    "en": {"summary": "Summary", "skills": "Skills", "experience": "Experience",
-           "projects": "Projects", "education": "Education", "certifications": "Certifications"},
-    "es": {"summary": "Resumen", "skills": "Competencias", "experience": "Experiencia",
-           "projects": "Proyectos", "education": "Formación", "certifications": "Certificaciones"},
+    "pt": {"summary": "Resumo", "skills": "Competências Técnicas", "soft_skills": "Soft Skills",
+           "experience": "Experiência", "projects": "Projetos", "education": "Formação",
+           "certifications": "Certificações", "achievements": "Conquistas"},
+    "en": {"summary": "Summary", "skills": "Technical Skills", "soft_skills": "Soft Skills",
+           "experience": "Experience", "projects": "Projects", "education": "Education",
+           "certifications": "Certifications", "achievements": "Achievements"},
+    "es": {"summary": "Resumen", "skills": "Competencias Técnicas", "soft_skills": "Habilidades Blandas",
+           "experience": "Experiencia", "projects": "Proyectos", "education": "Formación",
+           "certifications": "Certificaciones", "achievements": "Logros"},
 }
 
 

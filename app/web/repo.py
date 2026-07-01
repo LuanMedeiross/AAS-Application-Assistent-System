@@ -22,8 +22,8 @@ def apply_master_cv(profile: Profile, cv: dict) -> None:
     """Copia os campos do dict master_cv para o Profile (usado por seed e import)."""
     for field in (
         "full_name", "email", "phone", "location", "linkedin_url", "portfolio_url",
-        "seniority", "summary", "target_roles", "languages", "skills", "experiences",
-        "projects", "education", "certifications", "achievements",
+        "seniority", "summary", "target_roles", "languages", "skills", "soft_skills",
+        "experiences", "projects", "education", "certifications", "achievements",
     ):
         if field in cv and cv[field] not in (None, ""):
             setattr(profile, field, cv[field])

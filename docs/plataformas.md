@@ -34,8 +34,24 @@ apply da Fase 3/6.
 > Nota de encoding: a resposta é UTF-8; ao imprimir no console do Windows pode aparecer mojibake,
 > mas `response.json()` no código entrega unicode correto. Descrições vêm em HTML — limpar tags.
 
-## InHire — canal `api` (a pesquisar)
-API pública documentada em `docs.inhire.com.br` (inscrição em vaga). Detalhar na expansão (Fase 7).
+## InHire — canal `api` (discovery confirmado, POR EMPRESA)
+
+InHire é **multi-tenant**: não há busca global pública; cada empresa é um `tenant`. O endpoint
+público exige o header **`X-Tenant: <empresa>`** e devolve **todas** as vagas daquela empresa
+(a busca por texto é client-side). Descobrimos por uma **lista de empresas-alvo**.
+
+```
+GET https://api.inhire.app/job-posts/public/pages/lean        (X-Tenant: <empresa>)  -> lista enxuta
+GET https://api.inhire.app/job-posts/public/pages/{jobId}     (X-Tenant: <empresa>)  -> detalhe
+```
+- **lean** (por vaga): `displayName` (título), `jobId`, `link` (url), `careerPage.name` (empresa).
+- **detalhe**: `description` (HTML), `location`, `workplaceType`, `contractType`.
+- **Filtro** por keyword é feito no título (`displayName`) no nosso código.
+- **Empresas-alvo**: configuráveis via `INHIRE_TENANTS` no `.env` (slugs, ex.: `empresa` de
+  `empresa.inhire.app`). Sem tenants configurados, o discovery do InHire retorna vazio.
+
+**Mapa → `JobPosting`:** `platform="inhire"`, `external_id=jobId`, `title=displayName`,
+`company=careerPage.name`, `url=link`, `location`/`description` do detalhe.
 
 ## Indeed / Catho / LinkedIn — canal `browser`
 Sem API pública aberta de candidato. Discovery/apply via navegador stealth + sessão manual;

@@ -6,5 +6,6 @@ uma plataforma: crie app/platforms/<id>/ (manifest/discovery/apply) e some o MAN
 from __future__ import annotations
 
 from .gupy.manifest import MANIFEST as _gupy
+from .inhire.manifest import MANIFEST as _inhire
 
-REGISTRY: dict = {m["id"]: m for m in (_gupy,)}
+REGISTRY: dict = {m["id"]: m for m in (_gupy, _inhire)}

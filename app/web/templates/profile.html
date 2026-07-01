@@ -39,8 +39,11 @@
   <label>Cargos-alvo (um por linha)</label>
   <textarea name="target_roles">{{ p.target_roles | join('\n') }}</textarea>
 
-  <label>Skills (uma por linha)</label>
+  <label>Skills técnicas (uma por linha)</label>
   <textarea name="skills">{{ p.skills | join('\n') }}</textarea>
+
+  <label>Soft skills (uma por linha)</label>
+  <textarea name="soft_skills">{{ p.soft_skills | join('\n') }}</textarea>
 
   <div style="margin-top:18px; display:flex; gap:12px; align-items:center">
     <button type="submit">Salvar</button>

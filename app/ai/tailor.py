@@ -29,9 +29,14 @@ IDIOMA: detecte o idioma da descrição da vaga e escreva TUDO (CV e carta) ness
 FORMATO ATS:
 - Espelhe LITERALMENTE as keywords/tecnologias da descrição da vaga que o candidato realmente \
 domina (não invente domínio que ele não tem).
-- Skills como lista objetiva (skills matrix). Bullets de experiência com métrica/resultado \
+- Skills técnicas como lista objetiva (skills matrix). Bullets de experiência com métrica/resultado \
 sempre que possível.
-- Resumo específico: nomeia uma certificação, 3 skills concretas, um feito e o cargo-alvo.
+- RESUMO = "sobre mim" profissional: quem é o candidato, foco, senioridade, proposta de valor e \
+cargo-alvo. NÃO coloque conquistas quantificadas no resumo (elas vão na seção de conquistas).
+- SOFT SKILLS: inclua as soft skills reais do perfil (ex.: comunicação com times e gestão, escrita \
+de relatórios, trabalho em equipe). São importantes para a 1ª etapa com RH não-técnico.
+- CONQUISTAS (achievements): liste os feitos quantificados do perfil (ex.: rankings, número de \
+falhas críticas encontradas) numa seção própria — não os invente.
 
 VOZ HUMANA (não soar como IA):
 - Varie o tamanho das frases (curtas e longas). Use detalhe específico real (ferramenta, alvo, \
@@ -50,11 +55,12 @@ estejam no perfil.
 
 Responda SOMENTE JSON no formato:
 {"language":"pt|en|...",
- "cv":{"summary":"...","skills":["..."],
+ "cv":{"summary":"...","skills":["..."],"soft_skills":["..."],
        "experiences":[{"title":"...","company":"...","period":"...","bullets":["..."]}],
        "projects":[{"name":"...","bullets":["..."]}],
        "education":[{"degree":"...","school":"...","period":"..."}],
-       "certifications":["..."]},
+       "certifications":["..."],
+       "achievements":["..."]},
  "cover_letter":"texto da carta no idioma da vaga"}"""
 
 

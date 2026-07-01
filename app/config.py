@@ -24,6 +24,15 @@ class Settings:
 
     captcha_api_key: str = os.getenv("CAPTCHA_API_KEY", "")
 
+    # Trava de segurança: enquanto False, "Aprovar e enviar" roda em DRY-RUN (não envia
+    # candidatura real). Só True (via .env ALLOW_REAL_SUBMIT=true) permite envio real.
+    allow_real_submit: bool = os.getenv("ALLOW_REAL_SUBMIT", "false").lower() == "true"
+
+    # InHire é por empresa (tenant): lista de empresas-alvo (slugs), separadas por vírgula.
+    inhire_tenants: list = [
+        t.strip() for t in os.getenv("INHIRE_TENANTS", "").split(",") if t.strip()
+    ]
+
     # SMTP (Fase 7)
     smtp_host: str = os.getenv("SMTP_HOST", "")
     smtp_port: int = int(os.getenv("SMTP_PORT", "587") or 587)

@@ -81,4 +81,23 @@ PDF via Chromium. `scripts/tailor_job.py [job_id]` gera tudo e registra a `Appli
 .\.venv\Scripts\python.exe scripts\tailor_job.py        # usa a vaga de maior score
 ```
 
-Próximo: **apply da Gupy** (precisa de `scripts/login.py gupy`) + fila de aprovação (Fase 6).
+**Fase 6 (fila de aprovação + apply) concluída** — `/queue` no dashboard com Preparar/Aprovar/
+Rejeitar; `platforms/gupy/apply.py` com trava dupla (aprovação humana + flag `ALLOW_REAL_SUBMIT`,
+padrão `false` → dry-run); `core/audit.py` registra tudo. Envio real é **assistido/supervisionado**
+via `scripts/apply_job.py <job_id>` (abre a página logada para você concluir). **Fatia vertical
+completa:** descobrir → ranquear → gerar CV/carta → revisar → aprovar.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\login.py gupy      # 1x: salva a sessão
+# no .env: ALLOW_REAL_SUBMIT=true  (só quando for enviar de verdade, supervisionando)
+.\.venv\Scripts\python.exe scripts\apply_job.py 2     # envio assistido
+```
+
+**Fase 7 em andamento** — Plugin **InHire** (canal `api`, por empresa/tenant) construído e
+verificado: `app/platforms/inhire/` usa `api.inhire.app/job-posts/public/pages/lean` com header
+`X-Tenant`. Configure as empresas-alvo em `INHIRE_TENANTS` no `.env`. Registrado no registry
+(agora: gupy, inhire).
+
+Restante da Fase 7 (melhor construído durante o uso real, "aplicar e consertar"): plugins de
+canal `browser` (Indeed/Catho/LinkedIn — anti-bot, exigem login), canal `email` (SMTP) e o modo
+automático opcional com filtros.
