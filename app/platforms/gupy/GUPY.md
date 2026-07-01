@@ -111,8 +111,55 @@ chamado por `scripts/auto_apply.py`. Detecção de etapa por `_detect_step()`.
 | 3 | **Dados adicionais** | `input[name="radioGroupIsIndicatedTitle"]` | radios já vêm "Não" (honesto); fonte opcional em branco; `button[name="saveAndContinueButton"]` **"Salvar e continuar"** |
 | 4 | **Landing "Perguntas da empresa"** | `button[aria-label="Responder agora"]` | clicar "Responder agora" |
 | 5 | **Perguntas da empresa** | `.curriculum-content` com `textarea/input` | IA responde → preenche → **"Salvar e continuar"** ⚠️ IRREVERSÍVEL |
-| 6 | **Modal** | após salvar | **SEMPRE** `button#dialog-save-personalization-step` "Personalizar candidatura" |
+| 6 | **Modal** (etapa `modal`) | `#dialog-save-personalization-step` visível (sobrepõe o form atrás) | **SEMPRE** "Personalizar candidatura" |
 | 7 | **"Apresente-se"** | `#personalization-step-text-area` ou `[data-testid="candidate-skill"]` | IA escreve apresentação + escolhe ≤3 skills → **"Finalizar candidatura"** ⚠️ ENVIO |
+
+> **Empresa SEM perguntas (Causa G):** algumas vagas pulam a etapa 5 — após "dados" (4) o "Salvar e
+> continuar" abre DIRETO o modal (6). Por isso o modal é uma **etapa própria** no loop
+> (`_detect_step` → `kind="modal"`), não um clique inline: cobre os dois caminhos (com e sem
+> perguntas da empresa). O modal sobrepõe o form anterior no DOM — detecte-o ANTES de dados/company.
+
+### Fluxo (fluxograma do `run_auto_apply`)
+
+Motor = **LOOP**: `_detect_step(page)` classifica a tela atual num `kind`, o loop executa a ação e
+**volta a detectar** (a Gupy é SPA — a URL quase não muda entre etapas). A **ordem de detecção**
+importa: `start → done → modal → personalize → respond_now → company → dados → advance` (o modal
+sobrepõe o form atrás; precisa vir antes de dados/company).
+
+```
+  goto jobUrl (sessão logada)
+        │
+        ▼
+  ┌──────────────────────────  LOOP  (até max_steps)  ──────────────────────────┐
+  │  _detect_step(page) → kind:                                                   │
+  │                                                                               │
+  │   start        → clica "Candidatar-se" (a[data-testid=apply-link])  ─┐        │
+  │   advance      → clica "Continuar" (revisão de currículo)            ─┤        │
+  │   dados        → radios "Não" (.click REAL) → "Salvar e continuar"   ─┤        │
+  │   respond_now  → clica "Responder agora"                            ─┤ re-    │
+  │   company      → IA responde+preenche → "Salvar e continuar" ⚠️      ─┤ detecta│
+  │   modal        → "Personalizar candidatura" (#dialog-...)           ─┘        │
+  │                                                                               │
+  │   done         → RETURN already_applied ✅ (fim)                              │
+  │                                                                               │
+  │   personalize  → IA: texto "Apresente-se" + escolhe ≤3 skills                 │
+  │                  → "Finalizar candidatura" ⚠️  ENVIO                          │
+  │                  → _finalized_ok()?  ── sim → RETURN sent ✅ (fim)            │
+  │                                      └─ não → RETURN error (retentável)       │
+  │                                                                               │
+  │   unknown[]/falha ≠ vazio na etapa company → RETURN needs_review (pausa)      │
+  └───────────────────────────────────────────────────────────────────────────────┘
+
+  Dois caminhos até o modal:
+    • COM perguntas:  dados → respond_now → company →⚠️Salvar→ modal → personalize → Finalizar
+    • SEM perguntas:  dados ──────────────────────→⚠️Salvar→ modal → personalize → Finalizar
+
+  ⚠️ = ponto IRREVERSÍVEL: gated por allow_real (+ confirmação na UI). Sem allow_real = DRY-RUN
+       (preenche e para). NUNCA reportar sent sem _finalized_ok (evita falso positivo).
+```
+
+> Diagnóstico de falhas (needs_review/incomplete/error/falso positivo): use a skill
+> **`diagnosticar-gupy`** — método de 5 passos + catálogo de causas A–G + snippets de dump.
 
 ### Detalhes das perguntas da empresa (etapa 5)
 - Só a **PRIMEIRA** `div.curriculum-content` tem as perguntas (extrair com escopo:
@@ -161,6 +208,25 @@ editáveis em `/profile`.
 ---
 
 ## 7. Gotchas (armadilhas já resolvidas — não regredir)
+
+- **⚠️ FALSO POSITIVO na finalização (crítico, produção):** NUNCA reportar `sent` só porque
+  clicou "Finalizar candidatura". Sob **headless + concorrência (lote de 5)** o submit pode não
+  completar antes do navegador fechar → a candidatura fica **iniciada mas NÃO finalizada** (rascunho
+  no painel da Gupy), e a gente reportava "sent" (falso positivo). Uma candidatura iniciada e não
+  finalizada é uma **FALHA**. **Regra:** após clicar "Finalizar candidatura", **esperar a
+  CONFIRMAÇÃO** — a tela vira `heading "Candidatura finalizada!"` com botões "Acompanhar
+  candidatura"/"Revisar meu currículo". Só então `sent`. Ver `_finalized_ok()` (espera
+  `"candidatura finalizada"`/"acompanhar candidatura" por ~20s); se não confirmar → `error` (NÃO
+  marcar como enviada, deixar retentável). Diagnóstico: rodando **headed (1 navegador)** o fluxo
+  finaliza certo; o problema aparece **headless/concorrente**.
+- **Re-run em vaga já finalizada:** `_detect_step` retorna `done` (via `_DONE_MARKERS` no texto) →
+  outcome `already_applied` (marca enviada, não reprocessa).
+- **⚠️ Campo AUTO-SALVO e DESABILITADO (idempotência):** a Gupy salva cada resposta e **desabilita
+  o campo já respondido**. Num re-run, `.fill()` num `<textarea disabled>4000</textarea>` **trava
+  30s** e vira `failed` → falso `needs_review`. **Regra** (`core/form_fill.apply_answers`): antes de
+  preencher texto, cheque `is_editable()`; se NÃO editável → já respondido: OK se tem valor, falha
+  só se vazio; se editável → `fill(..., timeout=10000)` (nunca o default de 30s).
+
 
 - **SPA de URL única:** as etapas trocam sem mudar a URL (`.../steps/.../curriculum`). Não confie
   na URL para saber a etapa; detecte por seletores (`_detect_step`) e, ao avançar, **espere a

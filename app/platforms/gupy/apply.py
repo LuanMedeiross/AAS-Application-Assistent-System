@@ -138,25 +138,65 @@ def _present(page, selector: str) -> bool:
         return False
 
 
+def _text_has(page, needles) -> bool:
+    try:
+        txt = page.evaluate("() => (document.body.innerText || '').toLowerCase()")
+    except Exception:  # noqa: BLE001
+        return False
+    return any(n in txt for n in needles)
+
+
+# Marcadores da tela de SUCESSO / já-candidatado (candidatura enviada de verdade).
+_DONE_MARKERS = ("candidatura finalizada", "sua candidatura foi", "candidatura enviada",
+                 "já se candidatou", "já candidatou", "acompanhar candidatura")
+
+
+def _finalized_ok(page, timeout_ms: int = 20000) -> bool:
+    """Espera a CONFIRMAÇÃO da Gupy ('Candidatura finalizada!' / 'Acompanhar candidatura').
+    Só com isso reportamos 'sent' — evita FALSO POSITIVO quando o submit não completa (headless/
+    concorrência) e o navegador fecharia antes do envio terminar."""
+    try:
+        page.wait_for_function(
+            "() => { const t=(document.body.innerText||'').toLowerCase();"
+            " return t.includes('candidatura finalizada') || t.includes('sua candidatura foi')"
+            " || t.includes('candidatura enviada')"
+            " || [...document.querySelectorAll('button,a')].some(b => /acompanhar candidatura/i.test(b.innerText||'')); }",
+            timeout=timeout_ms,
+        )
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 # ---------------------------------------------------------------- detecção de etapa
 _SKILLS_SEL = '[data-testid="candidate-skill"]'
 _PERSONALIZE_TEXT = "#personalization-step-text-area"
 _APPLY_LINK = 'a[data-testid="apply-link"]'
 _RESPOND_NOW = 'button[aria-label="Responder agora"]'
 _COMPANY_SCOPE = ".curriculum-content"
-_INDICATED_RADIO = 'input[name="radioGroupIsIndicatedTitle"]'
+_PERSONALIZE_MODAL = "#dialog-save-personalization-step"
+# Etapa "Dados adicionais": algumas empresas têm só a de indicação, outras só a de "trabalha na
+# empresa" — detectar por QUALQUER uma (senão a etapa cai em 'advance' e o fluxo trava).
+_DADOS_RADIOS = ('input[name="radioGroupIsIndicatedTitle"], '
+                 'input[name="radioGroupIsCompanyEmployeeTitle"]')
 
 
 def _detect_step(page) -> str:
     if _present(page, _APPLY_LINK):
         return "start"
+    # candidatura já finalizada (re-run numa vaga já enviada) — antes de tudo, sem apply-link
+    if _text_has(page, _DONE_MARKERS):
+        return "done"
+    # modal "Personalizar candidatura" (aparece após dados/perguntas; sobrepõe o form atrás dele)
+    if _present(page, _PERSONALIZE_MODAL):
+        return "modal"
     if _present(page, _SKILLS_SEL) or _present(page, _PERSONALIZE_TEXT):
         return "personalize"
     if _present(page, _RESPOND_NOW):
         return "respond_now"
     if _present(page, _COMPANY_SCOPE) and page.locator(f"{_COMPANY_SCOPE} textarea, {_COMPANY_SCOPE} input").count():
         return "company"
-    if _present(page, _INDICATED_RADIO):
+    if _present(page, _DADOS_RADIOS):
         return "dados"
     return "advance"  # etapa intermediária (revisão de currículo): só seguir
 
@@ -193,6 +233,18 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
         kind = _detect_step(page)
         log_fn(f"\n[{step}] etapa detectada: {kind}  ({page.url})")
 
+        if kind == "done":
+            return {"outcome": "already_applied", "filled": filled, "unknown": all_unknown,
+                    "message": "candidatura já estava finalizada."}
+
+        if kind == "modal":
+            # modal "Personalizar candidatura" (após dados sem perguntas OU após perguntas da empresa)
+            log_fn("   modal: personalizar candidatura.")
+            _click_sel(page, _PERSONALIZE_MODAL) or _click_text(page, "Personalizar candidatura")
+            _settle(page)
+            page.wait_for_timeout(1200)
+            continue
+
         if kind == "start":
             if not _advance(page, [("sel", _APPLY_LINK), ("sel", 'a:has-text("Candidatar-se")')]):
                 return {"outcome": "error", "filled": filled, "unknown": all_unknown,
@@ -200,8 +252,21 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             continue
 
         if kind == "dados":
-            # radios já vêm em "Não" (honesto); fonte é opcional → mantemos e só avançamos.
-            log_fn("   dados adicionais: mantendo defaults (Não/Não), fonte opcional em branco.")
+            # garante os radios em "Não" (nem toda empresa pré-seleciona). Usa .check(force) do
+            # Playwright — gesto REAL que o React registra (clique via JS não dispara o onChange,
+            # e o "Salvar e continuar" fica desabilitado).
+            log_fn("   dados adicionais: respondendo radios (Não) e avançando.")
+            # Clica de VERDADE o "Não" (label), mesmo já vindo HTML-checked: o React trata o radio
+            # como "untouched" e o save valida sem avançar; o clique real dispara o onChange.
+            for rname in ("radioGroupIsIndicatedTitle", "radioGroupIsCompanyEmployeeTitle"):
+                no = page.locator(f'input[name="{rname}"][value="no"]')
+                try:
+                    if no.count():
+                        lbl = no.first.locator("xpath=ancestor::label[1]")
+                        (lbl.first if lbl.count() else no.first).click(force=True)
+                except Exception:  # noqa: BLE001
+                    pass
+            _settle(page)
             if not _advance(page, [("sel", 'button[name="saveAndContinueButton"]'),
                                    ("text", "Salvar e continuar")]):
                 return {"outcome": "error", "filled": filled, "unknown": all_unknown,
@@ -232,12 +297,7 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                         "message": "cancelado antes de salvar as perguntas da empresa."}
             log_fn("   → clicando 'Salvar e continuar' (irreversível, confirmado)…")
             _advance(page, [("text", "Salvar e continuar")])
-            # modal → sempre personalizar
-            if not (_click_sel(page, "#dialog-save-personalization-step")
-                    or _click_text(page, "Personalizar candidatura")):
-                log_fn("   (modal de personalização não apareceu; seguindo)")
-            _settle(page)
-            page.wait_for_timeout(1200)
+            _settle(page)  # o modal "Personalizar candidatura" é tratado pela etapa 'modal' do loop
             continue
 
         if kind == "personalize":
@@ -262,9 +322,14 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             if not _click_text(page, "Finalizar candidatura"):
                 return {"outcome": "error", "filled": filled, "unknown": all_unknown,
                         "message": "não achei 'Finalizar candidatura'."}
-            _settle(page)
-            return {"outcome": "sent", "filled": filled, "unknown": all_unknown,
-                    "message": "candidatura finalizada."}
+            # ⚠️ NÃO reportar 'sent' só por clicar — VERIFICAR a confirmação da Gupy. Sob headless/
+            # concorrência o submit pode não completar antes de fechar o navegador (falso positivo).
+            if _finalized_ok(page):
+                return {"outcome": "sent", "filled": filled, "unknown": all_unknown,
+                        "message": "candidatura finalizada (confirmado pela Gupy)."}
+            return {"outcome": "error", "filled": filled, "unknown": all_unknown,
+                    "message": "cliquei 'Finalizar' mas a Gupy NÃO confirmou o envio — "
+                               "candidatura pode ter ficado INCOMPLETA (não marquei como enviada)."}
 
         # etapa intermediária (revisão de currículo): tentar avançar
         if _advance(page, [("text", "Continuar"), ("sel", 'button[name="saveAndContinueButton"]'),

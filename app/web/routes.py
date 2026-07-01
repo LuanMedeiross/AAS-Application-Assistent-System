@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
+from .. import applyqueue
 from ..config import settings
 from ..core import audit
 from ..db import get_session
@@ -205,15 +206,43 @@ def job_cover(job_id: int, request: Request, session: Session = Depends(get_sess
     return HTMLResponse(f'<div style="white-space:pre-wrap; margin-top:8px">{text}</div>')
 
 
+def _batch_ctx(session: Session, enqueued: int | None = None) -> dict:
+    """Contexto do painel de candidatura em lote (status da fila em memória)."""
+    snap = applyqueue.snapshot()
+    titles = {j.id: j.title for j in session.exec(select(Job)).all()}
+    order = {"running": 0, "queued": 1, "done": 2, "failed": 3}
+    rows = [{"job_id": jid, "title": titles.get(jid, "?"), **st} for jid, st in snap.items()]
+    rows.sort(key=lambda r: order.get(r.get("state"), 9))
+    return {"counts": applyqueue.counts(), "rows": rows,
+            "active": applyqueue.is_active(), "enqueued": enqueued}
+
+
 @router.get("/queue", response_class=HTMLResponse)
 def queue_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     apps = session.exec(select(Application)).all()
     jobs = {j.id: j for j in session.exec(select(Job)).all()}
     items = [(jobs[a.job_id], a) for a in apps if a.job_id in jobs]
     items.sort(key=lambda t: (t[0].score or 0), reverse=True)
-    return templates.TemplateResponse(
-        request, "queue.html", {"items": items, "allow_real": settings.allow_real_submit}
-    )
+    ctx = {"items": items, "allow_real": settings.allow_real_submit}
+    ctx.update(_batch_ctx(session))
+    return templates.TemplateResponse(request, "queue.html", ctx)
+
+
+@router.post("/queue/apply-all", response_class=HTMLResponse)
+def queue_apply_all(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    """Enfileira candidatura para TODAS as vagas com CV gerado ainda não enviadas (máx. 5 por vez)."""
+    apps = session.exec(select(Application)).all()
+    jobs = {j.id: j for j in session.exec(select(Job)).all()}
+    eligible = [a.job_id for a in apps
+                if a.cv_pdf_path and a.job_id in jobs and jobs[a.job_id].status != "applied"]
+    enq = sum(1 for jid in eligible if applyqueue.enqueue(jid))
+    return templates.TemplateResponse(request, "_batch_status.html", _batch_ctx(session, enqueued=enq))
+
+
+@router.get("/queue/apply-status", response_class=HTMLResponse)
+def queue_apply_status(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    """Polling do status da fila de candidatura em lote."""
+    return templates.TemplateResponse(request, "_batch_status.html", _batch_ctx(session))
 
 
 @router.post("/jobs/{job_id}/prepare", response_class=HTMLResponse)

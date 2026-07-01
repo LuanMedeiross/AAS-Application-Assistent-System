@@ -1,0 +1,20 @@
+<div id="batch-status"
+     {% if active %}hx-get="/queue/apply-status" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  {% if enqueued is not none %}
+    <div class="hint" style="margin-top:6px">Enfileiradas <b>{{ enqueued }}</b> candidatura(s) —
+      no máximo 5 navegadores por vez.</div>
+  {% endif %}
+  {% if rows %}
+    <div class="hint" style="margin-top:6px">
+      {{ counts.queued }} na fila · {{ counts.running }} rodando ·
+      <span class="ok">{{ counts.done }} concluída(s)</span> · {{ counts.failed }} falha(s)
+      {% if active %} ⏳{% endif %}
+    </div>
+    {% for r in rows %}
+      <div class="hint" style="font-size:12px">
+        {{ {'queued':'•','running':'⏳','done':'✅','failed':'❌'}.get(r.state, '•') }}
+        [{{ r.job_id }}] {{ r.title[:44] }} — {{ r.state }}{% if r.message %}: {{ r.message }}{% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

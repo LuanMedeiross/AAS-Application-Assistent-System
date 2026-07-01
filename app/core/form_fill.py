@@ -29,8 +29,10 @@ _CLICK_CHOICE_JS = r"""
     if (!t && el.value) t = el.value;
     return norm(t);
   };
+  const n = CSS.escape(name);
+  // name exato (radio/select) OU prefixo name-<idx> (checkbox agrupado: checkbox-1323868-0/1/2).
   const group = [...document.querySelectorAll(
-    `input[name="${CSS.escape(name)}"], [role="radio"][name="${CSS.escape(name)}"]`)];
+    `input[name="${n}"], input[name^="${n}-"], [role="radio"][name="${n}"], [role="checkbox"][name^="${n}-"]`)];
   const wn = norm(want).toLowerCase();
   for (const el of group) {
     if (labelOf(el).toLowerCase() === wn || norm(el.value).toLowerCase() === wn) {
@@ -62,14 +64,27 @@ _CLICK_SKILLS_JS = r"""
 
 
 def _locate_text(page, key: str):
-    """Localiza um input/textarea por id (tolerante a caracteres especiais) ou name."""
-    for sel in (f'[id="{key}"]', f'[name="{key}"]', f'textarea[name="{key}"]'):
-        loc = page.locator(sel).first
+    """Localiza um input/textarea por id/name. Robusto a caracteres especiais (aspas quebram o
+    seletor CSS `[name="..."]`): tenta escapado e, se falhar, casa por ÍNDICE via JS."""
+    esc = key.replace("\\", "\\\\").replace('"', '\\"')
+    for sel in (f'[id="input-{esc}"]', f'[id="{esc}"]', f'[name="{esc}"]'):
         try:
+            loc = page.locator(sel).first
             if loc.count() > 0:
                 return loc
         except Exception:  # noqa: BLE001
             continue
+    # Fallback: acha o índice do elemento por JS (comparação de string exata lida com aspas).
+    try:
+        idx = page.evaluate(
+            "(k) => [...document.querySelectorAll('input,textarea,select')]"
+            ".findIndex(e => e.name === k || e.id === k || e.id === 'input-' + k)",
+            key,
+        )
+    except Exception:  # noqa: BLE001
+        idx = -1
+    if isinstance(idx, int) and idx >= 0:
+        return page.locator("input, textarea, select").nth(idx)
     return None
 
 
@@ -96,8 +111,24 @@ def apply_answers(page, questions, answers) -> list[str]:
                 loc = _locate_text(page, ans.key)
                 if loc is None:
                     failed.append(ans.key)
+                    continue
+                # A Gupy AUTO-SALVA e DESABILITA o campo já respondido. Num re-run, tentar .fill()
+                # num textarea disabled trava 30s. Idempotência: se não é editável, considera
+                # respondido quando já tem valor; só falha se estiver vazio e travado.
+                try:
+                    editable = loc.is_editable(timeout=2000)
+                except Exception:  # noqa: BLE001
+                    editable = False
+                if not editable:
+                    try:
+                        current = (loc.input_value(timeout=2000) or "").strip()
+                    except Exception:  # noqa: BLE001
+                        current = ""
+                    if not current:
+                        failed.append(ans.key)
+                    # tem valor (já respondido) → OK, não reescreve
                 else:
-                    loc.fill(ans.value)
+                    loc.fill(ans.value, timeout=10000)  # timeout curto: nunca travar 30s
             elif q.kind == "skills":
                 wanted = [s.strip() for s in ans.value.split(";") if s.strip()]
                 clicked = page.evaluate(_CLICK_SKILLS_JS, wanted)

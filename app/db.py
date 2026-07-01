@@ -12,7 +12,9 @@ settings.ensure_dirs()
 engine = create_engine(
     settings.db_url,
     echo=False,
-    connect_args={"check_same_thread": False},
+    # check_same_thread=False + timeout: a fila de candidatura em lote roda em até 5 threads;
+    # o timeout faz um writer esperar o lock do SQLite em vez de estourar "database is locked".
+    connect_args={"check_same_thread": False, "timeout": 30},
 )
 
 

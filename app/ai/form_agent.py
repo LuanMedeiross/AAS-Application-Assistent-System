@@ -28,6 +28,10 @@ from .deepseek import chat_json
 
 log = logging.getLogger(__name__)
 
+# Respostas-lixo que NÃO devem ir para o campo (viram `unknown` se obrigatório).
+_NON_ANSWERS = {"unknown", "n/a", "na", "none", "null", "-", "--", "?", "não sei", "nao sei",
+                "desconhecido", "não informado", "nao informado", "sem informação", "sem informacao"}
+
 
 class FieldAnswer(BaseModel):
     key: str
@@ -79,9 +83,10 @@ SKILLS (tipo "skills"): escolha as MELHORES até `max_escolhas` das `opcoes` par
 `value` = as escolhidas separadas por "; " (ex.: "Pentest (teste de penetração); Segurança \
 Cibernética; Python").
 
-`unknown`: use APENAS se responder exigiria MENTIR sobre uma credencial/experiência factual — \
-caso raríssimo. Preferência salarial, disponibilidade, consentimento e logística NUNCA vão para \
-`unknown` (têm as regras acima).
+`unknown`: use APENAS se responder exigiria MENTIR sobre uma credencial/experiência factual, OU \
+para DADO PESSOAL que não está no PERFIL/EXTRAS (ex.: RG, CPF, RNE, matrícula) — coloque a `key` \
+em `unknown`. NUNCA escreva "unknown"/"não sei"/"não informado" como `value` de um campo. \
+Preferência salarial, disponibilidade, consentimento e logística NUNCA vão para `unknown`.
 
 Responda SOMENTE JSON:
 {"answers":[{"key":"<key>","value":"<resposta>","confidence":"high|low","reason":"curto"}],
@@ -148,7 +153,10 @@ def _sanitize(plan: FormPlan, questions: list[FormQuestion]) -> FormPlan:
         if q is None:
             continue  # resposta para pergunta inexistente: descarta
         val = (ans.value or "").strip()
-        if not val:
+        # Não escrever resposta-lixo no campo (ex.: o modelo mandar "unknown" p/ RG que não temos).
+        if not val or val.lower() in _NON_ANSWERS:
+            if q.required:
+                unknown.add(ans.key)
             continue
         if q.kind == "choice" and q.options and val not in q.options:
             # casa ignorando caixa; senão tenta a opção que CONTÉM o valor (faixas); senão unknown

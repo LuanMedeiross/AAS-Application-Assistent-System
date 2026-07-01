@@ -12,6 +12,8 @@ responde. Este módulo é a "ponte" DOM → perguntas.
 """
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel
 
 # Roda na página. Coleta cada controle com rótulo, contexto (bloco em volta) e uma chave estável.
@@ -139,7 +141,11 @@ def to_questions(snapshot: dict) -> list[FormQuestion]:
                               c.get("placeholder", ""), c.get("key", ""))
 
         if typ in ("radio", "checkbox"):
-            gkey = name or c["key"]
+            # Checkbox de opção única costuma vir como N inputs com nomes indexados
+            # (checkbox-1323868-0/1/2). Agrupamos pelo nome-BASE (sem o sufixo -\d+) para virar
+            # UMA pergunta de escolha, senão cada opção viraria uma pergunta e sobrariam unknowns.
+            base = name or c["key"]
+            gkey = re.sub(r"-\d+$", "", base) if typ == "checkbox" else base
             grp = seen_groups.get(gkey)
             opt_label = c.get("label") or c.get("value") or ""
             if grp is None:

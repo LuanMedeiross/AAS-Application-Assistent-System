@@ -6,6 +6,14 @@
     Fila de candidaturas. <b>Candidatar-se</b> dispara a candidatura automática (abre o navegador
     logado, preenche e envia). Confirme no diálogo — nada é enviado sem sua confirmação.
   </div>
+  <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+    <button hx-post="/queue/apply-all" hx-target="#batch-status" hx-swap="outerHTML"
+            hx-confirm="Candidatar-se automaticamente a TODAS as vagas com CV ainda não enviadas? (roda em segundo plano, no máx. 5 navegadores por vez)">
+      Candidatar em lote
+    </button>
+    <span class="hint">Aplica em todas as preparadas (CV gerado, não enviadas), 5 por vez, em segundo plano.</span>
+  </div>
+  {% include "_batch_status.html" %}
 </div>
 
 {% for job, app in items %}

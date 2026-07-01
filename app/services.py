@@ -128,7 +128,9 @@ def batch_tailor(session: Session, min_score: int = 0) -> dict:
             "min_score": min_score}
 
 
-def apply_application(session: Session, job: Job, *, allow_real: bool | None = None) -> dict:
+def apply_application(
+    session: Session, job: Job, *, allow_real: bool | None = None, headless: bool = False
+) -> dict:
     """Candidata-se à vaga via o fluxo automático do plugin (canal browser), no MESMO processo —
     sem shell-out. Abre o BrowserHarness, roda `run_auto_apply`, fecha e registra o resultado.
 
@@ -160,7 +162,7 @@ def apply_application(session: Session, job: Job, *, allow_real: bool | None = N
     # UI = produção: envio real por padrão (não usa ALLOW_REAL_SUBMIT). O diálogo da UI é a trava.
     allow_real = True if allow_real is None else allow_real
 
-    with BrowserHarness(headless=False) as h:
+    with BrowserHarness(headless=headless) as h:
         ctx = h.new_context(job.platform)
         page = ctx.new_page()
         try:
@@ -176,12 +178,14 @@ def apply_application(session: Session, job: Job, *, allow_real: bool | None = N
                 pass
 
     outcome = result.get("outcome")
-    if outcome == "sent":
+    if outcome in ("sent", "already_applied"):
         app_row.result, app_row.submitted_at, job.status = "sent", datetime.utcnow(), "applied"
     elif outcome == "needs_review":
         job.status = "pending_approval"
     elif outcome == "dry_run":
         app_row.result = "dry_run"
+    elif outcome == "error":
+        app_row.result, app_row.error = "error", result.get("message", "")
     session.add(app_row)
     session.add(job)
     audit.log(session, "auto_apply", platform=job.platform, job_id=job.id,
