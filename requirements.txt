@@ -13,6 +13,7 @@ openai
 # Fase 2+ (harness de navegador / captcha)
 playwright
 curl_cffi
+requests
 2captcha-python
 
 # Fase 5 (PDF)

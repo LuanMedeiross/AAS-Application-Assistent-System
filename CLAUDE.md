@@ -10,7 +10,7 @@ Arquitetura: **harness compartilhado (`core/`) + plugins finos por plataforma (`
 inspirada no `automation_launcher`. Cada plugin declara um **canal**: `api` | `browser` | `email`.
 
 → Visão/"por quê": **`ideia.md`** · O "o quê": **`SPEC.md`** · O "como": **`docs/arquitetura.md`**
-· UI e prompts: **`docs/design.md`** · **Regras de currículo: `ATS.md` (crítico)**.
+· UI e prompts: **`docs/design.md`** · **Regras de currículo: `ATS.md` + `HUMANIZE.md` (críticos)**.
 
 ---
 
@@ -46,8 +46,10 @@ de LLM. Enviesa para cautela sobre velocidade.**
 4. **Human-in-the-loop por padrão.** `apply` **para antes do envio final** em modo manual. Modo
    automático é opt-in explícito.
 5. **Saída de IA sempre validada contra `schemas.py`** antes de uso. Nada de confiar no JSON cru.
-6. **Todo CV gerado segue `ATS.md`** (formato ATS + checklist). Adaptar agressivamente à vaga e
-   reframe honesto de autoestudo/projetos/labs — **não fabricar vínculo empregatício inexistente**.
+6. **Todo texto de candidatura segue `ATS.md` + `HUMANIZE.md`** (formato ATS + voz humana não
+   detectável como IA). Adaptar agressivamente à vaga e reframe honesto de autoestudo/projetos/labs
+   — **não fabricar vínculo empregatício inexistente**. Ao escrever/revisar qualquer texto de
+   candidatura, usar a skill **`escrever-aplicacao`**.
 7. **Gate antes de tocar um plugin:** `python scripts/check_contracts.py` precisa passar.
 
 ---

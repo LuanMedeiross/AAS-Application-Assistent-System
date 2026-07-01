@@ -94,9 +94,10 @@ não importa `web/`, usa os schemas normalizados, e a assinatura de `discover`/`
   "cover_letter": "texto da carta no idioma da vaga"
 }
 ```
-- CV **adaptado agressivamente à descrição da vaga** e **no formato ATS** (ver `ATS.md`, que é
-  regra obrigatória): coluna única, headings canônicos, keywords da vaga espelhadas
-  literalmente, skills matrix, bullets com métrica.
+- CV **adaptado agressivamente à descrição da vaga**, **no formato ATS** (ver `ATS.md`) e com
+  **voz humana não detectável como IA** (ver `HUMANIZE.md`) — ambos obrigatórios: coluna única,
+  headings canônicos, keywords espelhadas, skills matrix, bullets com métrica, ritmo de frase
+  variado, sem vocabulário/clichês de IA, carta de 200–300 palavras com micro-episódio real.
 - **Base = `Profile.master_cv`** (real e verificável). O tailor **reframe e enfatiza** autoestudo,
   projetos e home labs como experiência concreta, maximizando aderência à vaga — **sem fabricar
   vínculo empregatício (empresa/cargo/datas) que não existiu** (quebra na entrevista técnica e no

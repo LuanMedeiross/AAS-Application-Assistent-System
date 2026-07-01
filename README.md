@@ -35,11 +35,24 @@ copy .env.example .env   # preencha DEEPSEEK_API_KEY, CAPTCHA_API_KEY, SMTP
 # abrir http://127.0.0.1:8000/profile
 ```
 
-## Estado (Fase 1 concluída)
+## Estado
 
-- Esqueleto FastAPI + HTMX, SQLite, modelos (Profile/Job/Application/PlatformSession/AuditLog).
-- Seed do CV-mestre (`curriculum/`), parser do export do LinkedIn, cliente DeepSeek + sugestão
-  de senioridade.
-- Dashboard de Profile (ver/editar/salvar).
+**Fase 1 concluída** — Esqueleto FastAPI + HTMX, SQLite, modelos, seed do CV-mestre
+(`curriculum/`), parser do export do LinkedIn, cliente DeepSeek + sugestão de senioridade,
+dashboard de Profile.
 
-Próximo: **Fase 2** — núcleo do harness (browser stealth via CDP, sessão, captcha, runner).
+**Fase 2 concluída** — Núcleo do harness (`app/core/`): Chromium único via CDP + stealth
+(`browser.py`/`stealth.py`), sessão manual reutilizável (`session.py`), HTTP com TLS
+impersonation (`http_client.py`), pipeline 2Captcha (`captcha.py`), runner base com circuit
+breaker (`runner.py`). Scripts: `login.py` (login manual → sessão), `apply_harness.py`
+(smoke/dry-run isolado), `check_contracts.py` (gate de plugins).
+
+```powershell
+# testar o harness de navegador:
+.\.venv\Scripts\python.exe scripts\apply_harness.py gupy
+# salvar sessão de uma plataforma (login manual):
+.\.venv\Scripts\python.exe scripts\login.py gupy
+```
+
+Próximo: **Fase 3** — primeiro plugin ponta a ponta (Gupy, canal `api`): discovery + apply +
+manifest, registrado no registry. Antes de codar: confirmar o mecanismo de discovery da Gupy.

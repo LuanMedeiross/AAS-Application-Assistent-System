@@ -96,7 +96,9 @@ controlado. Sempre validar contra `schemas.py`.
 - **Saída:** `{ score, reason, missing[] }`. Sem texto fora do JSON.
 
 ### Tailor (`deepseek-chat`)
-- **Entrada:** `Profile.master_cv` + descrição da vaga + regras do `ATS.md`.
+- **Entrada:** `Profile.master_cv` + descrição da vaga + regras do `ATS.md` + `HUMANIZE.md`.
+- **Voz humana (HUMANIZE.md):** ritmo variado (frases curtas + longas), detalhe específico real
+  por parágrafo, micro-episódio na carta, zero vocabulário/clichê de IA, carta de 200–300 palavras.
 - **Tarefa:** (1) detectar idioma da vaga; (2) gerar CV **no formato ATS** (ver `ATS.md`),
   adaptado agressivamente à descrição — keywords espelhadas literalmente, skills matrix, bullets
   com métrica; (3) escrever carta curta no mesmo idioma.
