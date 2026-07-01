@@ -97,6 +97,18 @@
         {% endfor %}
       </select></div>
   </div>
+
+  <h4 style="margin-top:16px; margin-bottom:2px">Documentos</h4>
+  <div class="hint" style="margin-bottom:8px">⚠️ Algumas candidaturas (recrutamento interno,
+    grandes empresas) <b>exigem RG e CPF</b> para preencher. Sem eles, essas vagas <b>pausam para
+    revisão</b> em vez de finalizar. Preencha para o envio ser 100% automático.</div>
+  <div class="row">
+    <div><label>RG (ou RNE)</label>
+      <input name="rg" value="{{ prefs.get('rg','') }}" placeholder="ex.: 12.345.678-9"></div>
+    <div><label>CPF</label>
+      <input name="cpf" value="{{ prefs.get('cpf','') }}" placeholder="ex.: 123.456.789-00"></div>
+  </div>
+
   <label>Perguntas frequentes (uma por linha, formato <code>pergunta :: resposta</code>)</label>
   <textarea name="faq" placeholder="Você tem experiência com AWS? :: Sim, em labs e projetos pessoais.">{% for q, a in (prefs.get('faq') or {}).items() %}{{ q }} :: {{ a }}
 {% endfor %}</textarea>

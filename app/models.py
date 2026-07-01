@@ -85,6 +85,8 @@ class Profile(SQLModel, table=True):
             "pcd": "pessoa com deficiência (PCD)",
             "race": "raça/cor",
             "gender": "gênero",
+            "rg": "RG (documento de identidade / RNE)",
+            "cpf": "CPF",
             "job_source": "onde encontrou a vaga",
             "notice_period": "aviso prévio / prazo para começar",
         }
