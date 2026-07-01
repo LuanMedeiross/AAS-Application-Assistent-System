@@ -83,7 +83,7 @@ Schemas normalizados (`JobPosting`, `ApplicationForm`, `FormField`, `ApplyResult
 ## Stack
 
 Python · FastAPI · Jinja2 + HTMX (sem build JS) · SQLModel + SQLite · Playwright (CDP) ·
-curl_cffi · WeasyPrint · DeepSeek (SDK `openai`, `base_url=https://api.deepseek.com`;
+curl_cffi · PDF via Chromium (`page.pdf`) · DeepSeek (SDK `openai`, `base_url=https://api.deepseek.com`;
 `deepseek-reasoner` p/ ranking, `deepseek-chat` p/ geração) · 2Captcha.
 
 ## Prioridade de plataformas (por taxa de resposta / risco)

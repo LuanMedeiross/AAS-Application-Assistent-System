@@ -69,7 +69,7 @@ app/
     tailor.py        # CV + carta no idioma da vaga (deepseek-chat)
     form_agent.py    # FormField[] -> respostas (canal browser)
 
-  pdf/render.py      # Jinja2 HTML -> WeasyPrint PDF
+  pdf/render.py      # Jinja2 HTML (template ATS) -> PDF via Chromium (page.pdf)
   emailer/sender.py  # SMTP (canal email)
   web/               # routes.py + templates/ + static/
 

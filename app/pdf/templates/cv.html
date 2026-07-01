@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<style>
+  /* ATS-friendly: coluna única, fonte web-safe, sem tabela/ícone/gráfico. Ver ATS.md */
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Calibri, "Helvetica Neue", sans-serif; color: #111;
+         font-size: 11pt; line-height: 1.4; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 2px; }
+  .contact { font-size: 9.5pt; color: #333; margin-bottom: 10px; }
+  h2 { font-size: 12pt; text-transform: uppercase; letter-spacing: .5px;
+       border-bottom: 1px solid #333; padding-bottom: 2px; margin: 14px 0 6px; }
+  .item { margin-bottom: 8px; }
+  .item .head { font-weight: bold; }
+  .item .sub { font-size: 9.5pt; color: #444; }
+  ul { margin: 3px 0 0; padding-left: 18px; }
+  li { margin: 1px 0; }
+  .skills { font-size: 10pt; }
+</style>
+</head>
+<body>
+  <h1>{{ c.full_name }}</h1>
+  <div class="contact">
+    {{ c.email }}{% if c.phone %} · {{ c.phone }}{% endif %}{% if c.location %} · {{ c.location }}{% endif %}
+    {% if c.linkedin_url %} · {{ c.linkedin_url }}{% endif %}{% if c.portfolio_url %} · {{ c.portfolio_url }}{% endif %}
+  </div>
+
+  {% if cv.summary %}<h2>{{ t.summary }}</h2><div>{{ cv.summary }}</div>{% endif %}
+
+  {% if cv.skills %}<h2>{{ t.skills }}</h2><div class="skills">{{ cv.skills | join(' · ') }}</div>{% endif %}
+
+  {% if cv.experiences %}<h2>{{ t.experience }}</h2>
+    {% for e in cv.experiences %}
+    <div class="item">
+      <div class="head">{{ e.title }}{% if e.company %} — {{ e.company }}{% endif %}</div>
+      {% if e.period %}<div class="sub">{{ e.period }}</div>{% endif %}
+      {% if e.bullets %}<ul>{% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if cv.projects %}<h2>{{ t.projects }}</h2>
+    {% for p in cv.projects %}
+    <div class="item">
+      <div class="head">{{ p.name }}</div>
+      {% if p.bullets %}<ul>{% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if cv.education %}<h2>{{ t.education }}</h2>
+    {% for ed in cv.education %}
+    <div class="item">
+      <div class="head">{{ ed.degree }}</div>
+      <div class="sub">{{ ed.school }}{% if ed.period %} · {{ ed.period }}{% endif %}</div>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if cv.certifications %}<h2>{{ t.certifications }}</h2>
+    <ul>{% for cert in cv.certifications %}<li>{{ cert }}</li>{% endfor %}</ul>
+  {% endif %}
+</body>
+</html>

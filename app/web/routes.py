@@ -5,11 +5,12 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..db import get_session
+from ..models import Application
 from .repo import get_or_create_profile, jobs_by_score
 
 router = APIRouter()
@@ -64,7 +65,26 @@ def profile_save(
 @router.get("/jobs", response_class=HTMLResponse)
 def jobs_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     jobs = jobs_by_score(session)
-    return templates.TemplateResponse(request, "jobs.html", {"jobs": jobs})
+    apps = {a.job_id: a for a in session.exec(select(Application)).all()}
+    return templates.TemplateResponse(request, "jobs.html", {"jobs": jobs, "apps": apps})
+
+
+@router.get("/jobs/{job_id}/cv.pdf")
+def job_cv_pdf(job_id: int, session: Session = Depends(get_session)):
+    app_row = session.exec(select(Application).where(Application.job_id == job_id)).first()
+    if not app_row or not app_row.cv_pdf_path or not Path(app_row.cv_pdf_path).exists():
+        return HTMLResponse("CV ainda não gerado para esta vaga.", status_code=404)
+    return FileResponse(app_row.cv_pdf_path, media_type="application/pdf",
+                        filename=f"cv_job_{job_id}.pdf")
+
+
+@router.get("/jobs/{job_id}/cover", response_class=HTMLResponse)
+def job_cover(job_id: int, request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    app_row = session.exec(select(Application).where(Application.job_id == job_id)).first()
+    if not app_row or not app_row.cover_letter_path or not Path(app_row.cover_letter_path).exists():
+        return HTMLResponse('<span class="hint">Carta ainda não gerada.</span>')
+    text = Path(app_row.cover_letter_path).read_text(encoding="utf-8")
+    return HTMLResponse(f'<div style="white-space:pre-wrap; margin-top:8px">{text}</div>')
 
 
 @router.post("/profile/suggest-seniority", response_class=HTMLResponse)

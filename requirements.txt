@@ -16,5 +16,4 @@ curl_cffi
 requests
 2captcha-python
 
-# Fase 5 (PDF)
-weasyprint
+# Fase 5 (PDF): renderizado via Chromium do Playwright (page.pdf) — sem WeasyPrint/GTK no Windows.

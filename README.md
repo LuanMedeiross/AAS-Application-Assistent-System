@@ -16,7 +16,7 @@ copy .env.example .env   # preencha DEEPSEEK_API_KEY, CAPTCHA_API_KEY, SMTP
 ```
 
 > Nota: a Fase 1 usa só o subconjunto leve (fastapi/uvicorn/sqlmodel/jinja2/openai). As demais
-> deps (playwright, curl_cffi, weasyprint, 2captcha) entram nas fases seguintes.
+> deps (playwright, curl_cffi, 2captcha) entram nas fases seguintes. PDF é via Chromium.
 
 ## Popular o Profile
 
@@ -73,4 +73,12 @@ $env:PYTHONIOENCODING="utf-8"
 # depois abra http://127.0.0.1:8000/jobs
 ```
 
-Próximo: **Fase 5** (geração de CV/carta sob medida, ATS + HUMANIZE, PDF) e apply da Gupy.
+**Fase 5 (geração + PDF) concluída** — `ai/tailor.py` gera CV + carta sob medida no idioma da
+vaga (ATS + HUMANIZE + anti-fabricação, DeepSeek `reasoner`); `pdf/render.py` renderiza o CV em
+PDF via Chromium. `scripts/tailor_job.py [job_id]` gera tudo e registra a `Application`; a página
+`/jobs` mostra o CV/carta e serve o PDF.
+```powershell
+.\.venv\Scripts\python.exe scripts\tailor_job.py        # usa a vaga de maior score
+```
+
+Próximo: **apply da Gupy** (precisa de `scripts/login.py gupy`) + fila de aprovação (Fase 6).

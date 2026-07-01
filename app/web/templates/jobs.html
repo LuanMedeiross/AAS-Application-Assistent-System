@@ -18,9 +18,17 @@
     <div style="font-weight:600">{{ j.title }}</div>
     <div class="hint">{{ j.company }} · {{ j.location }} · {{ j.platform }}</div>
     {% if j.score_reason %}<div style="margin-top:6px">{{ j.score_reason }}</div>{% endif %}
-    <div style="margin-top:8px">
+    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
       <a href="{{ j.url }}" target="_blank"><button class="ghost">Abrir vaga</button></a>
+      {% if j.id in apps %}
+        <span class="tag">CV/carta gerados ({{ apps[j.id].language }})</span>
+        <a href="/jobs/{{ j.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
+        <button class="ghost" hx-get="/jobs/{{ j.id }}/cover" hx-target="#cover-{{ j.id }}" hx-swap="innerHTML">Ver carta</button>
+      {% else %}
+        <span class="hint">Gerar via <code>scripts/tailor_job.py {{ j.id }}</code></span>
+      {% endif %}
     </div>
+    <div id="cover-{{ j.id }}"></div>
   </div>
 </div>
 {% else %}
