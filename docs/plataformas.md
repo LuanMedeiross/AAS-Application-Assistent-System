@@ -34,6 +34,24 @@ apply da Fase 3/6.
 > Nota de encoding: a resposta é UTF-8; ao imprimir no console do Windows pode aparecer mojibake,
 > mas `response.json()` no código entrega unicode correto. Descrições vêm em HTML — limpar tags.
 
+**Parâmetros da busca (estudo empírico):**
+- `jobName` (texto, obrigatório p/ filtrar), `limit` (**máx. 100**; >100 → vazio), `offset` (pagina).
+- `pagination.total` é **furado** (reporta só o tamanho da página) — paginar por `offset` até vir
+  menos que `limit`.
+- Filtros server-side que funcionam (1 valor cada): `workplaceType` (`remote`|`hybrid`|`on-site`),
+  `isRemoteWork=true`, `state` (nome completo, ex. "São Paulo"; "SP"→0), `city`, `type`
+  (`vacancy_type_effective`|`vacancy_type_internship`|`vacancy_type_talent_pool`|…).
+- **Não** há filtro server-side de data/status: `orderBy`/`sort`/`publishedSince` → HTTP 400.
+
+**Regra do projeto (recência + aberta), aplicada client-side no discovery:**
+- Tipo/modelo: como a API só aceita 1 valor, filtramos client-side. Padrão: `type ∈ {effective,
+  internship}` e `workplaceType ∈ {remote, hybrid}` (priorizar remoto).
+- Recência: descartar `publishedDate` > 28 dias (há vagas com 1900+ dias listadas).
+- **Aberta:** `applicationDeadline` é INÚTIL (fica no futuro mesmo em vaga encerrada). O sinal
+  confiável é o **status na career page**: ela é Next.js SSR e embute em
+  `<script id="__NEXT_DATA__">` o `props.pageProps.job.status` = `published` (aberta) | `closed`
+  (encerrada). Fetch HTTP puro da `jobUrl` + parse do JSON. Ver `_is_open()` no discovery.
+
 ## InHire — canal `api` (discovery confirmado, POR EMPRESA)
 
 InHire é **multi-tenant**: não há busca global pública; cada empresa é um `tenant`. O endpoint

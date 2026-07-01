@@ -45,6 +45,62 @@
   <label>Soft skills (uma por linha)</label>
   <textarea name="soft_skills">{{ p.soft_skills | join('\n') }}</textarea>
 
+  {% set prefs = p.application_prefs or {} %}
+  <h3 style="margin-top:22px; margin-bottom:4px">Preferências de candidatura</h3>
+  <div class="hint" style="margin-bottom:10px">Respostas recorrentes de formulário. A IA usa
+    exatamente o que você preencher aqui (não inventa). O que ficar em branco e for perguntado
+    numa vaga pausa para revisão antes do envio.</div>
+  <div class="row">
+    <div><label>Pretensão salarial</label>
+      <input name="salary_expectation" value="{{ prefs.get('salary_expectation','') }}"
+        placeholder="ex.: R$ 4.000 ou A combinar"></div>
+    <div><label>Disponibilidade de início</label>
+      <input name="availability" value="{{ prefs.get('availability','') }}"
+        placeholder="ex.: imediata"></div>
+  </div>
+  <div class="row">
+    <div><label>Modelo de trabalho aceito</label>
+      <input name="work_model" value="{{ prefs.get('work_model','') }}"
+        placeholder="ex.: remoto ou híbrido; aberto a mudança"></div>
+    <div><label>Aviso prévio / prazo</label>
+      <input name="notice_period" value="{{ prefs.get('notice_period','') }}"
+        placeholder="ex.: 30 dias / disponível já"></div>
+  </div>
+  <div class="row">
+    <div><label>Onde costuma encontrar a vaga</label>
+      <input name="job_source" value="{{ prefs.get('job_source','') }}"
+        placeholder="ex.: LinkedIn"></div>
+    <div></div>
+  </div>
+
+  <h4 style="margin-top:16px; margin-bottom:2px">Autoidentificação (filtro de vagas afirmativas)</h4>
+  <div class="hint" style="margin-bottom:8px">Fator <b>imutável</b>: vagas afirmativas <b>exclusivas</b>
+    a um grupo ao qual você não pertence são <b>descartadas automaticamente</b>. Também usado para
+    responder perguntas do formulário sobre esses dados.</div>
+  <div class="row">
+    <div><label>PcD (pessoa com deficiência)</label>
+      <select name="pcd">
+        {% for o in ["Não","Sim","Prefiro não responder"] %}
+        <option value="{{ o }}" {% if prefs.get('pcd')==o %}selected{% endif %}>{{ o }}</option>
+        {% endfor %}
+      </select></div>
+    <div><label>Raça/cor</label>
+      <select name="race">
+        {% for o in ["Branca","Preta","Parda","Amarela","Indígena","Prefiro não responder"] %}
+        <option value="{{ o }}" {% if prefs.get('race')==o %}selected{% endif %}>{{ o }}</option>
+        {% endfor %}
+      </select></div>
+    <div><label>Gênero</label>
+      <select name="gender">
+        {% for o in ["Masculino","Feminino","Prefiro não responder"] %}
+        <option value="{{ o }}" {% if prefs.get('gender')==o %}selected{% endif %}>{{ o }}</option>
+        {% endfor %}
+      </select></div>
+  </div>
+  <label>Perguntas frequentes (uma por linha, formato <code>pergunta :: resposta</code>)</label>
+  <textarea name="faq" placeholder="Você tem experiência com AWS? :: Sim, em labs e projetos pessoais.">{% for q, a in (prefs.get('faq') or {}).items() %}{{ q }} :: {{ a }}
+{% endfor %}</textarea>
+
   <div style="margin-top:18px; display:flex; gap:12px; align-items:center">
     <button type="submit">Salvar</button>
     <span id="save-status"></span>

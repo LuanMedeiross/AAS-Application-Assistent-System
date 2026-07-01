@@ -17,9 +17,11 @@ class Settings:
     # Segredos / IA
     deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
     deepseek_base_url: str = "https://api.deepseek.com"
-    # Modelo mais forte da DeepSeek (R1, raciocínio) para tudo — ranking e geração.
+    # Ranking = tarefa bounded de julgamento → deepseek-chat (rápido, barato, suporta
+    # response_format=json_object). A qualidade vem da RUBRICA no ai/ranker.py, não do reasoner.
+    model_rank: str = "deepseek-chat"
+    # Geração (CV/carta) = qualidade crítica, baixo volume → reasoner (raciocínio).
     # reasoner não suporta response_format=json_object; o ai/deepseek._extract_json cobre isso.
-    model_rank: str = "deepseek-reasoner"
     model_generate: str = "deepseek-reasoner"
 
     captcha_api_key: str = os.getenv("CAPTCHA_API_KEY", "")

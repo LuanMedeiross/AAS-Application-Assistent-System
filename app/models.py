@@ -41,6 +41,11 @@ class Profile(SQLModel, table=True):
     certifications: list = Field(default_factory=list, sa_column=Column(JSON))
     achievements: list = Field(default_factory=list, sa_column=Column(JSON))
 
+    # Respostas recorrentes de formulário (pretensão salarial, disponibilidade, PCD, fonte da
+    # vaga + FAQ pergunta→resposta). Lidas pelo form_agent como EXTRAS — o usuário fornece uma
+    # vez; a IA nunca inventa esses dados. Ver to_application_extras().
+    application_prefs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -65,6 +70,40 @@ class Profile(SQLModel, table=True):
             "certifications": self.certifications,
             "achievements": self.achievements,
         }
+
+    def to_application_extras(self) -> dict[str, Any]:
+        """Respostas recorrentes que o form_agent usa como EXTRAS (só o que o usuário forneceu).
+
+        Chaves conhecidas viram rótulos legíveis em pt (o modelo casa por semântica com as
+        perguntas do formulário); o restante do `application_prefs` (ex.: FAQ livre) vai junto.
+        """
+        p = dict(self.application_prefs or {})
+        known = {
+            "salary_expectation": "pretensão salarial",
+            "availability": "disponibilidade de início",
+            "work_model": "modelo de trabalho aceito (presencial/remoto/híbrido/mudança)",
+            "pcd": "pessoa com deficiência (PCD)",
+            "race": "raça/cor",
+            "gender": "gênero",
+            "job_source": "onde encontrou a vaga",
+            "notice_period": "aviso prévio / prazo para começar",
+        }
+        extras: dict[str, Any] = {}
+        for key, label in known.items():
+            val = p.pop(key, "")
+            if str(val).strip():
+                extras[label] = val
+        faq = p.pop("faq", None)
+        if isinstance(faq, dict):
+            extras.update({k: v for k, v in faq.items() if str(v).strip()})
+        # sobras (chaves customizadas) entram como estão
+        extras.update({k: v for k, v in p.items() if str(v).strip()})
+        return extras
+
+    def demographics(self) -> dict[str, str]:
+        """Autoidentificação (imutável) para o filtro de vagas afirmativas. Ver ai/eligibility.py."""
+        p = self.application_prefs or {}
+        return {"pcd": p.get("pcd", ""), "race": p.get("race", ""), "gender": p.get("gender", "")}
 
 
 class Job(SQLModel, table=True):

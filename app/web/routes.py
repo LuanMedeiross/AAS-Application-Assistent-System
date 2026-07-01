@@ -54,6 +54,16 @@ def profile_save(
     target_roles: str = Form(""),
     skills: str = Form(""),
     soft_skills: str = Form(""),
+    # preferências de candidatura (respostas recorrentes de formulário — EXTRAS do form_agent)
+    salary_expectation: str = Form(""),
+    availability: str = Form(""),
+    work_model: str = Form(""),
+    pcd: str = Form(""),
+    race: str = Form(""),
+    gender: str = Form(""),
+    job_source: str = Form(""),
+    notice_period: str = Form(""),
+    faq: str = Form(""),
 ) -> HTMLResponse:
     profile = get_or_create_profile(session)
     profile.full_name = full_name
@@ -68,6 +78,24 @@ def profile_save(
     profile.target_roles = [x.strip() for x in target_roles.splitlines() if x.strip()]
     profile.skills = [x.strip() for x in skills.splitlines() if x.strip()]
     profile.soft_skills = [x.strip() for x in soft_skills.splitlines() if x.strip()]
+    # FAQ livre: uma "pergunta :: resposta" por linha
+    faq_map: dict[str, str] = {}
+    for line in faq.splitlines():
+        if "::" in line:
+            q, a = line.split("::", 1)
+            if q.strip() and a.strip():
+                faq_map[q.strip()] = a.strip()
+    profile.application_prefs = {
+        "salary_expectation": salary_expectation.strip(),
+        "availability": availability.strip(),
+        "work_model": work_model.strip(),
+        "pcd": pcd.strip(),
+        "race": race.strip(),
+        "gender": gender.strip(),
+        "job_source": job_source.strip(),
+        "notice_period": notice_period.strip(),
+        "faq": faq_map,
+    }
     profile.updated_at = datetime.utcnow()
     session.add(profile)
     session.commit()

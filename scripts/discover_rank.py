@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from sqlmodel import Session  # noqa: E402
 
+from app.ai.eligibility import filter_eligible  # noqa: E402
 from app.ai.ranker import rank_job  # noqa: E402
 from app.db import engine, init_db  # noqa: E402
 from app.platforms import REGISTRY  # noqa: E402
@@ -41,9 +42,18 @@ def main() -> None:
     with Session(engine) as s:
         profile = get_or_create_profile(s)
         cv = profile.to_master_cv()
+
+        # Descarte de vagas afirmativas exclusivas a grupos aos quais o candidato não pertence.
+        postings, discarded = filter_eligible(postings, profile.demographics())
+        if discarded:
+            print(f"  {len(discarded)} descartada(s) por vaga afirmativa (fator imutável):")
+            for p, res in discarded:
+                print(f"    ✗ {p.title[:48]:48} | grupos={res.grupos} | {res.trecho[:45]}")
+
         saved = save_postings(s, postings)
+        from app.config import settings
         to_rank = [j for j in saved if j.score is None]
-        print(f"Ranqueando {len(to_rank)} vaga(s) nova(s) (DeepSeek reasoner)...")
+        print(f"Ranqueando {len(to_rank)} vaga(s) nova(s) (model_rank={settings.model_rank})...")
         for j in to_rank:
             try:
                 r = rank_job(cv, {"title": j.title, "company": j.company,
