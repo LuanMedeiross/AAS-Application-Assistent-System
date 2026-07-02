@@ -242,9 +242,14 @@ editáveis em `/profile`.
 
 ## 8. Lacunas conhecidas (TODO)
 
-- **Upload do CV sob medida NÃO está plugado:** a candidatura usa o **CV do perfil Gupy**, não o
-  `cv_job_N.pdf` adaptado. Falta subir no dropzone da etapa de revisão de currículo (etapa 2) antes
-  do "Continuar". As respostas/apresentação/skills JÁ vão sob medida.
+- **⚠️ CV sob medida por vaga é IMPOSSÍVEL no fluxo logado (restrição da Gupy):** a candidatura
+  **sempre usa o CV do PERFIL** do candidato — NÃO há upload por candidatura. Confirmado por dump
+  do DOM em vaga nova E em andamento: a etapa de currículo é só "Olá, vamos continuar sua
+  candidatura?" + "Continuar", **sem `input[type=file]`/dropzone** ("Meu currículo" é menu da conta,
+  não upload). O `cv_job_N.pdf` adaptado serve para OUTROS canais (email/LinkedIn/outras
+  plataformas), não para a Gupy. Na Gupy, o valor sob medida vem das **respostas + personalização
+  + skills** (que JÁ são por vaga). Alternativa (heavy/arriscada): trocar o CV do PERFIL antes de
+  cada envio — mas é global e re-parseia o perfil; não recomendado.
 - **Captcha** ainda não acionado no loop (usar `core/captcha.py` se a Gupy bloquear).
 
 ---

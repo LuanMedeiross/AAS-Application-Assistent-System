@@ -23,6 +23,11 @@ class Settings:
     # Geração (CV/carta) = qualidade crítica, baixo volume → reasoner (raciocínio).
     # reasoner não suporta response_format=json_object; o ai/deepseek._extract_json cobre isso.
     model_generate: str = "deepseek-reasoner"
+    # Robustez das chamadas de IA: timeout POR TENTATIVA (s) e nº de retentativas. O SDK openai
+    # faz backoff exponencial automático em erros transientes (conexão/408/409/429/5xx). Generoso
+    # porque o reasoner (CV) demora; sem isso a chamada podia pendurar indefinidamente.
+    deepseek_timeout: float = float(os.getenv("DEEPSEEK_TIMEOUT", "180") or 180)
+    deepseek_max_retries: int = int(os.getenv("DEEPSEEK_MAX_RETRIES", "3") or 3)
 
     captcha_api_key: str = os.getenv("CAPTCHA_API_KEY", "")
 
