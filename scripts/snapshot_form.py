@@ -16,14 +16,17 @@ Fluxo:
     3. Pressione ENTER no terminal para capturar a tela atual (repita por etapa).
     4. Digite 'q' + ENTER para sair.
 
-Saídas em: <scratchpad>/gupy_form/  (step_NN.html + step_NN.json + fields_NN.txt)
+Saídas em: <temp do SO>/application-assistant/gupy_form/  (step_NN.html + step_NN.json +
+fields_NN.txt); sobrescreva com a env var SNAPSHOT_OUT_DIR.
 Pré-requisito: python scripts/login.py <plataforma>  (sessão salva).
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,10 +39,11 @@ from app.core.session import has_session  # noqa: E402
 from app.db import engine, init_db  # noqa: E402
 from app.models import Job  # noqa: E402
 
-# Saída em scratchpad (artefato de trabalho, fora do projeto).
+# Saída no temp do SO (artefato de trabalho, fora do projeto; portável entre máquinas).
+# Sobrescreva com a env var SNAPSHOT_OUT_DIR se quiser outro destino.
 OUT_DIR = Path(
-    r"C:\Users\user\AppData\Local\Temp\claude\C--Users-user-Desktop-projetos-Application-Assistent"
-    r"\00000000-0000-0000-0000-000000000000\scratchpad\gupy_form"
+    os.getenv("SNAPSHOT_OUT_DIR")
+    or Path(tempfile.gettempdir()) / "application-assistant" / "gupy_form"
 )
 
 # Extrator roda NA PÁGINA: coleta cada controle de formulário com o rótulo associado.
