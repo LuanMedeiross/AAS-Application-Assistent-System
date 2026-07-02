@@ -1,7 +1,9 @@
-"""Cliente DeepSeek (SDK openai apontando para api.deepseek.com).
+"""LLM client (openai SDK against any OpenAI-compatible endpoint; provider configured via
+LLM_BASE_URL / MODEL_RANK / MODEL_GENERATE — DeepSeek by default, or a local server such as
+Ollama / LM Studio / vLLM).
 
-Expõe `chat_json()` — força saída JSON e (opcional) valida contra um modelo Pydantic.
-A chave só é exigida quando há chamada real; importar este módulo não falha sem .env.
+Exposes `chat_json()` — forces JSON output and optionally validates it against a Pydantic model.
+The API key is only required on a real call; importing this module never fails without a .env.
 """
 from __future__ import annotations
 
@@ -22,8 +24,8 @@ _client = None
 def _extract_json(content: str) -> dict:
     """Extrai um objeto JSON da resposta do modelo, tolerante a fences/markdown.
 
-    deepseek-reasoner não suporta response_format=json_object, então a saída pode vir com
-    ```json ... ``` ou texto ao redor. Tentamos json.loads direto; senão, o primeiro {...}.
+    Reasoner models (and JSON mode = off) don't emit a strict json_object, so the reply may come
+    wrapped in ```json ... ``` or with surrounding text. Try json.loads first, else the first {...}.
     """
     content = content.strip()
     try:
@@ -45,19 +47,30 @@ def _extract_json(content: str) -> dict:
 def _get_client():
     global _client
     if _client is None:
-        if not settings.deepseek_api_key:
+        if not settings.llm_api_key:
             raise RuntimeError(
-                "DEEPSEEK_API_KEY não configurada — preencha o .env (ver .env.example)."
+                "LLM_API_KEY not set — fill it in .env (see .env.example). "
+                "For a local server, any non-empty dummy value works."
             )
         from openai import OpenAI
 
         _client = OpenAI(
-            api_key=settings.deepseek_api_key,
-            base_url=settings.deepseek_base_url,
-            timeout=settings.deepseek_timeout,
-            max_retries=settings.deepseek_max_retries,
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url,
+            timeout=settings.llm_timeout,
+            max_retries=settings.llm_max_retries,
         )
     return _client
+
+
+def _use_json_mode(model: str) -> bool:
+    """Whether to send response_format=json_object, per LLM_JSON_MODE (auto | on | off)."""
+    mode = settings.llm_json_mode
+    if mode == "on":
+        return True
+    if mode == "off":
+        return False
+    return "reasoner" not in model   # auto: reasoner models reject it
 
 
 def chat_json(
@@ -68,12 +81,12 @@ def chat_json(
     schema: Optional[Type[T]] = None,
     temperature: float = 0.3,
 ) -> dict | T:
-    """Chama o DeepSeek pedindo JSON. Se `schema` for dado, valida e retorna a instância."""
+    """Call the LLM asking for JSON. If `schema` is given, validate and return the instance."""
     client = _get_client()
     model = model or settings.model_generate
     kwargs: dict = {"temperature": temperature}
-    # reasoner não suporta response_format=json_object; chat suporta.
-    if "reasoner" not in model:
+    # response_format=json_object is rejected by reasoner models and by some local servers.
+    if _use_json_mode(model):
         kwargs["response_format"] = {"type": "json_object"}
     resp = client.chat.completions.create(
         model=model,

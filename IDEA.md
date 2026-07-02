@@ -21,7 +21,7 @@ Doing both by hand, at scale, is impossible.
 ## Value proposition
 
 An app that runs the **discover → rank → adapt → fill → submit** cycle end to
-end, with AI (DeepSeek) handling the content and browser/API automation handling the
+end, with AI (OpenAI-compatible, configurable via .env) handling the content and browser/API automation handling the
 execution. The human stays in command of the important decisions (review and approve), not the
 repetitive typing.
 

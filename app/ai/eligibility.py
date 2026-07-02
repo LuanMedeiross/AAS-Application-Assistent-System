@@ -5,7 +5,7 @@ candidato não pertence ao grupo, não adianta gastar tokens gerando CV/carta �
 
 Cuidado com falso-positivo: "empresa valoriza diversidade" / benefício a algum grupo / "damos
 preferência" NÃO é exclusiva. Por isso: pré-filtro barato por palavra-chave (só suspeitos passam)
-+ classificação DeepSeek (deepseek-chat) que entende o CONTEXTO. Depois cruza com a
++ classificação via AI (model_rank, default deepseek-chat) que entende o CONTEXTO. Depois cruza com a
 autoidentificação do perfil (`Profile.demographics()`).
 
 Regra de elegibilidade (OR entre grupos — afirmativas costumam aceitar qualquer grupo listado):
@@ -19,7 +19,7 @@ import logging
 from pydantic import BaseModel
 
 from ..config import settings
-from .deepseek import chat_json
+from .llm_client import chat_json
 
 log = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 # Application Assistant
 
 > **Project master context** (loaded in every session). App that automates job applications
-> using DeepSeek (AI) + browser/API automation. Detail that is not a rule lives in
+> using an LLM (DeepSeek by default, or a local OpenAI-compatible server) + browser/API automation. Detail that is not a rule lives in
 > `docs/` and is read on demand. **When in doubt about an area, open its doc BEFORE touching it.**
 
 A **local single-user** app (Python, FastAPI + HTMX) that runs the
@@ -40,7 +40,7 @@ LLM errors. Biases toward caution over speed.**
 1. **Plugins do not touch infrastructure.** A plugin (`platforms/<id>/`) **never** opens a browser
    (`chromium.launch`/`sync_playwright`) nor creates an HTTP session on its own — it receives `ctx`/`session`
    from the harness. Shared behavior goes in `core/`.
-2. **Secrets out of git.** `DEEPSEEK_API_KEY`, `CAPTCHA_API_KEY`, SMTP only in `.env` (gitignored).
+2. **Secrets out of git.** `LLM_API_KEY`, `CAPTCHA_API_KEY`, SMTP only in `.env` (gitignored).
    **Never** commit `.env`, `data/sessions/*`, nor `data/app.db`.
 3. **Never store platform passwords.** Only `storage_state` (cookies), via manual login.
 4. **Human-in-the-loop by default.** `apply` **stops before the final submission** in manual mode. Automatic
@@ -83,8 +83,8 @@ Normalized schemas (`JobPosting`, `ApplicationForm`, `FormField`, `ApplyResult`)
 ## Stack
 
 Python · FastAPI · Jinja2 + HTMX (no JS build) · SQLModel + SQLite · Playwright (CDP) ·
-curl_cffi · PDF via Chromium (`page.pdf`) · DeepSeek (SDK `openai`, `base_url=https://api.deepseek.com`;
-`deepseek-reasoner` for ranking, `deepseek-chat` for generation) · 2Captcha.
+curl_cffi · PDF via Chromium (`page.pdf`) · AI via OpenAI-compatible API (SDK `openai`, `LLM_BASE_URL`/`MODEL_RANK`/`MODEL_GENERATE`
+from `.env`; any OpenAI-compatible endpoint — DeepSeek by default, or a local server; defaults `deepseek-chat` for ranking, `deepseek-reasoner` for generation) · 2Captcha.
 
 ## Platform priority (by response rate / risk)
 

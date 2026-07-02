@@ -1,4 +1,4 @@
-"""Geração de CV + carta sob medida (DeepSeek reasoner). Ver SPEC §5, ATS.md, HUMANIZE.md.
+"""Geração de CV + carta sob medida (model_generate, default deepseek-reasoner). Ver SPEC §5, ATS.md, HUMANIZE.md.
 
 Regras embutidas no prompt (o modelo não lê os arquivos):
 - Detecta o idioma da vaga e gera TUDO nesse idioma.
@@ -16,7 +16,7 @@ import logging
 
 from ..config import settings
 from ..core.schemas import TailorResult
-from .deepseek import chat_json
+from .llm_client import chat_json
 from .humanize import strip_ai_dashes
 
 log = logging.getLogger(__name__)

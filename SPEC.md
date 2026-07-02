@@ -26,7 +26,7 @@
 | ID | Requirement |
 |---|---|
 | RNF-01 | **Local single-user** app; SQLite; no dependency on a hosted service. |
-| RNF-02 | **Secrets out of git** (`.env`): `DEEPSEEK_API_KEY`, `CAPTCHA_API_KEY`, SMTP. |
+| RNF-02 | **Secrets out of git** (`.env`): `LLM_API_KEY`, `CAPTCHA_API_KEY`, SMTP. |
 | RNF-03 | **Never store platform passwords** — only `storage_state` (session cookies). |
 | RNF-04 | Plugins **do not open browser/HTTP on their own** — they receive `ctx`/`session` from the harness. |
 | RNF-05 | AI outputs **validated against schema** before use. |
@@ -146,7 +146,7 @@ does not import `web/`, uses the normalized schemas, and the `discover`/`apply` 
 
 ## 8. Acceptance criteria per phase
 
-- **Phase 1:** Profile imported from LinkedIn and editable; `ai/deepseek.py` returns valid JSON.
+- **Phase 1:** Profile imported from LinkedIn and editable; `ai/llm_client.py` returns valid JSON.
 - **Phase 2:** `scripts/login.py` saves a session; `apply_harness.py` runs a sample plugin in dry-run.
 - **Phase 3:** Gupy discovers real jobs and lists them in the dashboard; `apply` validates in dry-run.
 - **Phase 4:** jobs displayed sorted by score with a rationale.

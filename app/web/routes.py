@@ -166,7 +166,7 @@ def job_tailor(job_id: int, request: Request, session: Session = Depends(get_ses
         app_row, _ = tailor_application(session, job)
     except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
         return HTMLResponse(
-            f'<span class="hint">Falha ao gerar (verifique DEEPSEEK_API_KEY): {exc}</span>'
+            f'<span class="hint">Falha ao gerar (verifique LLM_API_KEY): {exc}</span>'
         )
     audit.log(session, "tailor", platform=job.platform, job_id=job.id,
               detail={"language": app_row.language})
@@ -304,10 +304,10 @@ def suggest_seniority(request: Request, session: Session = Depends(get_session))
     """IA sugere a senioridade a partir do master_cv (usuário confirma salvando)."""
     profile = get_or_create_profile(session)
     try:
-        from ..ai.deepseek import derive_seniority
+        from ..ai.llm_client import derive_seniority
 
         result = derive_seniority(profile.to_master_cv())
         msg = f"Sugestão: {result.seniority} — {result.reason}"
     except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
-        msg = f"Não foi possível sugerir (verifique DEEPSEEK_API_KEY): {exc}"
+        msg = f"Não foi possível sugerir (verifique LLM_API_KEY): {exc}"
     return HTMLResponse(f'<span class="hint">{msg}</span>')

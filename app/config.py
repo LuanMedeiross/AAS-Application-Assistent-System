@@ -13,21 +13,32 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
+def _env(*names: str, default: str = "") -> str:
+    """First non-empty env var among `names`, else `default`."""
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return value
+    return default
+
+
 class Settings:
-    # Segredos / IA
-    deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
-    deepseek_base_url: str = "https://api.deepseek.com"
-    # Ranking = tarefa bounded de julgamento → deepseek-chat (rápido, barato, suporta
-    # response_format=json_object). A qualidade vem da RUBRICA no ai/ranker.py, não do reasoner.
-    model_rank: str = "deepseek-chat"
-    # Geração (CV/carta) = qualidade crítica, baixo volume → reasoner (raciocínio).
-    # reasoner não suporta response_format=json_object; o ai/deepseek._extract_json cobre isso.
-    model_generate: str = "deepseek-reasoner"
-    # Robustez das chamadas de IA: timeout POR TENTATIVA (s) e nº de retentativas. O SDK openai
-    # faz backoff exponencial automático em erros transientes (conexão/408/409/429/5xx). Generoso
-    # porque o reasoner (CV) demora; sem isso a chamada podia pendurar indefinidamente.
-    deepseek_timeout: float = float(os.getenv("DEEPSEEK_TIMEOUT", "180") or 180)
-    deepseek_max_retries: int = int(os.getenv("DEEPSEEK_MAX_RETRIES", "3") or 3)
+    # LLM provider (any OpenAI-compatible endpoint: DeepSeek, or a local server such as Ollama /
+    # LM Studio / vLLM).
+    llm_api_key: str = _env("LLM_API_KEY")
+    llm_base_url: str = _env("LLM_BASE_URL", default="https://api.deepseek.com")
+    # Ranking = bounded judgment task -> a fast/cheap chat model (quality comes from the rubric in
+    # ai/ranker.py). Generation (CV/cover) = quality-critical -> a reasoner-class model.
+    model_rank: str = _env("MODEL_RANK", default="deepseek-chat")
+    model_generate: str = _env("MODEL_GENERATE", default="deepseek-reasoner")
+    # JSON output mode: "auto" sends response_format=json_object unless the model name looks like a
+    # reasoner; "on" always sends it; "off" never (for local servers that reject it — _extract_json
+    # still parses the reply). Set LLM_JSON_MODE=off for local models that don't support it.
+    llm_json_mode: str = _env("LLM_JSON_MODE", default="auto").lower()
+    # Per-attempt timeout (s) and retries. The openai SDK backs off on transient errors
+    # (connection/408/409/429/5xx). Generous because a reasoner (CV) is slow.
+    llm_timeout: float = float(_env("LLM_TIMEOUT", default="180"))
+    llm_max_retries: int = int(_env("LLM_MAX_RETRIES", default="3"))
 
     captcha_api_key: str = os.getenv("CAPTCHA_API_KEY", "")
 

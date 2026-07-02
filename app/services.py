@@ -35,7 +35,7 @@ def tailor_application(
     session: Session, job: Job, profile: Profile | None = None
 ) -> tuple[Application, TailorResult]:
     """Gera CV+carta sob medida para `job`, renderiza o PDF, salva/atualiza a Application e
-    marca a vaga como `tailored`. Retorna (Application, TailorResult). Requer DEEPSEEK_API_KEY.
+    marca a vaga como `tailored`. Retorna (Application, TailorResult). Requer LLM_API_KEY.
 
     Idempotente por vaga: regenera e sobrescreve os arquivos `cv_job_<id>.pdf`/`cover_job_<id>.txt`.
     """
@@ -104,7 +104,7 @@ def discover_and_rank(
 
 def batch_tailor(session: Session, min_score: int = 0) -> dict:
     """Gera CV+carta em lote para todas as vagas com score >= `min_score` que AINDA NÃO têm CV.
-    Pula as já geradas (Application com cv_pdf_path). Síncrono — pode demorar (DeepSeek por vaga).
+    Pula as já geradas (Application com cv_pdf_path). Síncrono — pode demorar (uma chamada de LLM por vaga).
     """
     from .web.repo import jobs_by_score
 

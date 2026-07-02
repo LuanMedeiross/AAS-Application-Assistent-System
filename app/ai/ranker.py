@@ -1,8 +1,8 @@
-"""Ranking de vaga × perfil (DeepSeek chat + rubrica). Ver SPEC.md §5 e docs/DESIGN.md.
+"""Ranking de vaga × perfil (model_rank + rubrica). Ver SPEC.md §5 e docs/DESIGN.md.
 
 Pontua 0–100 a aderência da vaga a um candidato de SEGURANÇA OFENSIVA, por uma rubrica com pesos
-(domínio ofensivo > senioridade > modelo > skills). A qualidade vem da rubrica, não do reasoner:
-usa `deepseek-chat` (rápido, barato, JSON nativo). Saída validada contra RankResult.
+(domínio ofensivo > senioridade > modelo > skills). A qualidade vem da rubrica, não do modelo:
+usa `settings.model_rank` (default deepseek-chat; rápido, barato, JSON nativo). Saída validada contra RankResult.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import logging
 
 from ..config import settings
 from ..core.schemas import RankResult
-from .deepseek import chat_json
+from .llm_client import chat_json
 
 log = logging.getLogger(__name__)
 

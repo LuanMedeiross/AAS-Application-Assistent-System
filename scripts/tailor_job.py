@@ -1,7 +1,7 @@
 """Gera CV + carta sob medida para uma vaga, renderiza o PDF e registra a Application.
 
 Uso: python scripts/tailor_job.py [job_id]
-Sem job_id, usa a vaga de maior score. Requer DEEPSEEK_API_KEY no .env.
+Sem job_id, usa a vaga de maior score. Requer LLM_API_KEY no .env.
 """
 from __future__ import annotations
 

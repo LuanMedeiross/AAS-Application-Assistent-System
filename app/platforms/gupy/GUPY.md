@@ -92,7 +92,7 @@ Applied by the orchestrator (`discover_rank.py`), not by the plugin's discovery 
 (`app/ai/eligibility.py`). An EXCLUSIVE affirmative-action posting (accepts only one group: PcD /
 racial / gender) is **discarded** if the candidate doesn't belong to the group (`Profile.demographics()`:
 pcd/race/gender). A cheap keyword pre-filter ("afirmativa", "talentos negros", "[pcd]"…) → only
-suspects go to the AI (`deepseek-chat`), which distinguishes an **exclusive** posting from "the
+suspects go to the AI (`model_rank`, default deepseek-chat), which distinguishes an **exclusive** posting from "the
 company values diversity/benefit" (it doesn't discard those). `cleanup_jobs.py` also removes
 affirmative-action postings already saved in the database.
 

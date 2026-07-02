@@ -3,7 +3,7 @@
 Uso: python scripts/discover_rank.py [plataforma] [--keywords "appsec,pentest"] [--limit N]
 Ex.: python scripts/discover_rank.py gupy --keywords "appsec,pentest,red team"
 
-Ranquear usa o DeepSeek (reasoner) — pode levar ~30-60s por vaga ainda não ranqueada.
+Ranquear usa AI (model_rank, default deepseek-chat) — pode levar ~10-30s por vaga ainda não ranqueada.
 """
 from __future__ import annotations
 

@@ -27,7 +27,7 @@ This mirrors `automation_launcher`'s `requests_mode` vs browser.
 └─────────────┘   └──────┬───────┘   │  http_client/runner     │
                          │           └────────┬────────────────┘
                 ┌────────▼────────┐           │
-                │  ai/ (DeepSeek) │           ▼
+                │  ai/ (LLM)      │           ▼
                 │ ranker/tailor/  │   ┌─────────────────┐   ┌──────────┐
                 │ form_agent      │   │ platforms/<id>/ │──▶│ Gupy API │
                 └────────┬────────┘   │ discovery+apply │   │ LinkedIn │
@@ -43,7 +43,7 @@ This mirrors `automation_launcher`'s `requests_mode` vs browser.
 ```
 app/
   main.py            # cria o FastAPI, monta rotas, startup do harness
-  config.py          # lê .env (DEEPSEEK_API_KEY, CAPTCHA_API_KEY, SMTP_*)
+  config.py          # lê .env (LLM_API_KEY, CAPTCHA_API_KEY, SMTP_*)
   db.py              # engine SQLite + sessão SQLModel
   models.py          # Profile, Job, Application, PlatformSession, AuditLog
 
@@ -64,9 +64,9 @@ app/
       apply.py       # apply(job, application, ctx|session, dry_run) -> ApplyResult
 
   ai/
-    deepseek.py      # client openai(base_url=api.deepseek.com) + chamada JSON validada
-    ranker.py        # score vaga x perfil (deepseek-reasoner)
-    tailor.py        # CV + carta no idioma da vaga (deepseek-chat)
+    llm_client.py    # client OpenAI-compatible (base_url/modelos do .env) + chamada JSON validada
+    ranker.py        # score vaga x perfil (model_rank, default deepseek-chat)
+    tailor.py        # CV + carta no idioma da vaga (model_generate, default deepseek-reasoner)
     form_agent.py    # FormField[] -> respostas (canal browser)
 
   pdf/render.py      # Jinja2 HTML (template ATS) -> PDF via Chromium (page.pdf)
@@ -107,8 +107,8 @@ curriculum/          # FONTE do master_cv: curriculo.pdf (export LinkedIn) + cur
   `languages`, WebGL, timezone. Reduces detection without promising invisibility.
 - **Manual session (storage_state)**: we never store a password; the user logs in once. Trade-off:
   the session expires and requires occasional re-login.
-- **DeepSeek via the `openai` SDK**: `base_url=https://api.deepseek.com`. `deepseek-reasoner` for
-  ranking (the decision), `deepseek-chat` for generation. Output forced to JSON and validated against `schemas`.
+- **AI via OpenAI-compatible API**: `LLM_BASE_URL`/`MODEL_RANK`/`MODEL_GENERATE` from `.env`
+  (any OpenAI-compatible endpoint — DeepSeek by default, or a local server; defaults `deepseek-chat` for ranking, `deepseek-reasoner` for generation). Output forced to JSON and validated against `schemas`.
 - **Circuit breaker**: N consecutive failures/captchas → `stop=True` + a signal on the dashboard. It does not burn
   the session or 2Captcha balance in a loop.
 - **Human-in-the-loop by default**: `apply` stops before the final submission; automatic mode is opt-in.
@@ -121,12 +121,13 @@ curriculum/          # FONTE do master_cv: curriculo.pdf (export LinkedIn) + cur
 - If a challenge appears (Cloudflare Turnstile / hCaptcha / reCAPTCHA v2), `apply` calls
   `captcha.solve(...)` (2Captcha) and injects the token. Balance failure → fatal + pause.
 
-## DeepSeek integration (reference)
+## AI integration (reference)
 
 ```python
 from openai import OpenAI
-client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
-# ranking: model="deepseek-reasoner"; geração: model="deepseek-chat"
+client = OpenAI(api_key=settings.llm_api_key, base_url=settings.llm_base_url)
+# ranking: model=settings.model_rank (default deepseek-chat)
+# geração: model=settings.model_generate (default deepseek-reasoner)
 # response_format={"type": "json_object"}; validar contra schemas antes de usar
 ```
 

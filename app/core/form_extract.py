@@ -2,7 +2,7 @@
 
 O formulário empresarial varia de empresa para empresa (Gupy monta perguntas de triagem
 customizadas). Em vez de seletores fixos, tiramos um snapshot do DOM da etapa atual e
-normalizamos em `FormQuestion[]` — o DeepSeek (ver `ai/form_agent.py`) lê essas perguntas e
+normalizamos em `FormQuestion[]` — o modelo (ver `ai/form_agent.py`) lê essas perguntas e
 responde. Este módulo é a "ponte" DOM → perguntas.
 
 - `EXTRACT_JS`: roda NA PÁGINA (page.evaluate) e devolve os controles crus + `context`

@@ -1,6 +1,7 @@
 # Application Assistant
 
-A **local, single-user** app that automates job applications end to end using AI (DeepSeek) +
+A **local, single-user** app that automates job applications end to end using AI (OpenAI-compatible,
+configurable via `.env` — defaults to DeepSeek) +
 browser/API automation. It runs one loop — **discover → rank → tailor CV & cover letter → fill →
 submit** — and keeps a human in the loop for anything irreversible.
 
@@ -11,7 +12,7 @@ files, not touching the core.
 ## Features
 
 - **Discover** open, recent postings on a platform by keyword.
-- **Rank** each posting 0–100 against your profile with DeepSeek (weighted rubric).
+- **Rank** each posting 0–100 against your profile with AI (weighted rubric).
 - **Tailor** an ATS-friendly CV + cover letter per job, in the posting's language, rendered to PDF.
 - **Apply** automatically: an AI agent fills the platform's screening form; irreversible steps stop
   for your approval (or run as a dry-run).
@@ -58,11 +59,27 @@ use of this tool.
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m playwright install chromium
-copy .env.example .env   # fill in DEEPSEEK_API_KEY (required); CAPTCHA_API_KEY / SMTP are optional
+copy .env.example .env   # fill in LLM_API_KEY (required); CAPTCHA_API_KEY / SMTP are optional
 ```
 
-> PDF rendering uses Chromium (installed by Playwright). Only `DEEPSEEK_API_KEY` is required to get
+> PDF rendering uses Chromium (installed by Playwright). Only `LLM_API_KEY` is required to get
 > started; captcha (2Captcha) and email (SMTP) are optional.
+
+### Local / self-hosted model
+
+The LLM calls go through the OpenAI SDK against a configurable endpoint, so any OpenAI-compatible
+server works (Ollama, LM Studio, vLLM, LocalAI). Point `.env` at it — no code change needed:
+
+```
+LLM_BASE_URL=http://localhost:11434/v1   # Ollama (LM Studio: :1234/v1, vLLM: :8000/v1)
+MODEL_GENERATE=qwen2.5:14b               # a capable model for CV/cover (14B+ recommended)
+MODEL_RANK=qwen2.5:7b                    # ranking can use a smaller one
+LLM_API_KEY=ollama                       # dummy, but must be non-empty
+# LLM_JSON_MODE=off                      # set if your server rejects response_format=json_object
+```
+
+Note: small models follow the ATS/HUMANIZE rules and emit valid JSON less reliably, so expect more
+`needs_review`.
 
 ## Populate the Profile
 

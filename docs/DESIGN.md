@@ -88,14 +88,14 @@ Shows the generated PDF + cover letter, side by side with the job posting descri
 Principles: short instruction, **strict JSON output**, minimum necessary context, controlled
 language. Always validate against `schemas.py`.
 
-### Ranker (`deepseek-reasoner`)
+### Ranker (`model_rank`, default: deepseek-chat)
 - **Input:** `target_roles` + `seniority` + Profile summary (skills/experience) +
   job title/description.
 - **Task:** score the fit from 0–100, justify in 1–2 sentences, list missing requirements.
   **Penalize seniority mismatch** (e.g., a senior job for an entry-level profile).
 - **Output:** `{ score, reason, missing[] }`. No text outside the JSON.
 
-### Tailor (`deepseek-chat`)
+### Tailor (`model_generate`, default: deepseek-reasoner)
 - **Input:** `Profile.master_cv` + job description + the rules in `ATS.md` + `HUMANIZE.md`.
 - **Human voice (HUMANIZE.md):** varied rhythm (short + long sentences), a real specific detail
   per paragraph, a micro-episode in the cover letter, zero AI vocabulary/clichés, a 200–300 word cover letter.
@@ -108,7 +108,7 @@ language. Always validate against `schemas.py`.
   Experience gap → a strong Projects/Labs section.
 - **Output:** `{ language, cv{...}, cover_letter }`. Validate against `schemas.py` + the `ATS.md` checklist.
 
-### Form agent (`deepseek-chat`, browser channel)
+### Form agent (`model_generate`, default: deepseek-reasoner, browser channel)
 - **Input:** `FormField[]` (label/type/options) + Profile + application data.
 - **Task:** map each field to a value; mark as `unknown` anything it cannot answer
   confidently (instead of guessing).

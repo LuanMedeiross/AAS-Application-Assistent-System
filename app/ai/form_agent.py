@@ -1,8 +1,8 @@
-"""Agente de preenchimento de formulário (DeepSeek). Ver TO-DO Prioridade 1.
+"""Agente de preenchimento de formulário (model_generate, default deepseek-reasoner). Ver TO-DO Prioridade 1.
 
 O formulário empresarial varia por empresa (Gupy monta perguntas de triagem customizadas). O
 fluxo é genérico: `core/form_extract.to_questions()` normaliza a etapa do DOM em `FormQuestion[]`,
-e AQUI o DeepSeek lê e responde cada pergunta.
+e AQUI o modelo lê e responde cada pergunta.
 
 Filosofia: é OBRIGATÓRIO responder TODAS as perguntas — travar em `unknown` inviabiliza automação
 em massa. Regras (embutidas no prompt):
@@ -24,7 +24,7 @@ from pydantic import BaseModel
 
 from ..config import settings
 from ..core.form_extract import FormQuestion
-from .deepseek import chat_json
+from .llm_client import chat_json
 from .humanize import strip_ai_dashes
 
 log = logging.getLogger(__name__)

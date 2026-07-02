@@ -2,7 +2,7 @@
 
 Once an application has gone through the apply flow it carries a recorded Q&A in
 `Application.form_qa` (the questions the company asked + what the AI answered). This tool
-re-injects ONLY the questions into the form agent (DeepSeek) and prints the answers it produces
+re-injects ONLY the questions into the form agent (the LLM) and prints the answers it produces
 now. No browser, no platform, no submission: use it to test prompt/rule changes (HUMANIZE, the
 em-dash / employer / interest rules, etc.) against real questions without burning a live
 application.
@@ -12,7 +12,7 @@ Usage:
     python scripts/replay_qa.py <job_id>        # replay: the AI answers the recorded questions
     python scripts/replay_qa.py <job_id> --dry  # show the questions that WOULD be injected (no API call)
 
-Only DeepSeek is called (costs tokens); nothing touches a job platform. `--dry` calls nothing.
+Only the LLM is called (costs tokens); nothing touches a job platform. `--dry` calls nothing.
 """
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def _replay(session: Session, job_id: int, dry: bool) -> None:
                 print(f"  [{q.key}] ({q.kind}) req={q.required}{opts} :: {q.prompt}")
             continue
 
-        # Real replay: this is the only place that hits DeepSeek (import lazily so --dry is free).
+        # Real replay: this is the only place that hits the LLM (import lazily so --dry is free).
         from app.ai import form_agent
 
         plan = form_agent.map_form(
@@ -120,7 +120,7 @@ def _replay(session: Session, job_id: int, dry: bool) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Replay recorded form questions through the AI (offline).")
     ap.add_argument("job_id", nargs="?", type=int, help="Job id whose recorded questions to replay.")
-    ap.add_argument("--dry", action="store_true", help="Show the questions without calling DeepSeek.")
+    ap.add_argument("--dry", action="store_true", help="Show the questions without calling the LLM.")
     args = ap.parse_args()
 
     init_db()
