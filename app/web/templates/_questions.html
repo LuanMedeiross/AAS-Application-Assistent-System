@@ -1,0 +1,29 @@
+{# Inline Q&A view for one application: what the AI answered on the screening form. #}
+<div style="margin-top:8px">
+  {% set answered = qa | selectattr('status', 'equalto', 'answered') | list | length %}
+  {% set unknown = qa | selectattr('status', 'equalto', 'unknown') | list | length %}
+  {% set failed = qa | selectattr('status', 'equalto', 'failed') | list | length %}
+  <div class="hint" style="margin-bottom:8px">
+    O que a IA respondeu em seu nome — {{ qa | length }} pergunta(s):
+    <b>{{ answered }}</b> respondida(s){% if unknown %} · <b>{{ unknown }}</b> deixada(s) para revisão{% endif %}{% if failed %} · <b>{{ failed }}</b> não preenchida(s){% endif %}.
+  </div>
+  {% for item in qa %}
+  <div style="margin-bottom:10px; padding:8px; border-radius:6px; background:rgba(127,127,127,.06);
+              border-left:3px solid {% if item.status == 'answered' %}#3a9d5d{% elif item.status in ['failed', 'unknown'] %}#c9772e{% else %}#999{% endif %}">
+    <div style="font-weight:600">{{ item.question }}
+      <span class="hint" style="font-size:11px; font-weight:400">[{{ item.step }} · {{ item.kind }}{% if item.required %} · obrigatória{% endif %}]</span>
+    </div>
+    {% if item.status == 'answered' %}
+      <div style="white-space:pre-wrap; margin-top:2px">{{ item.answer }}</div>
+      {% if item.confidence == 'low' %}<span class="hint">⚠️ baixa confiança</span>{% endif %}
+    {% elif item.status == 'failed' %}
+      <div class="hint" style="margin-top:2px">⚠️ Resposta gerada, mas não consegui preencher no formulário:
+        <span style="white-space:pre-wrap">{{ item.answer }}</span></div>
+    {% elif item.status == 'unknown' %}
+      <div class="hint" style="margin-top:2px">🔒 Não respondida — deixada para revisão humana.</div>
+    {% else %}
+      <div class="hint" style="margin-top:2px">— pulada</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>

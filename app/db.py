@@ -23,6 +23,27 @@ def init_db() -> None:
     from . import models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
+    _run_light_migrations()
+
+
+def _run_light_migrations() -> None:
+    """Add columns that were introduced after a table was first created.
+
+    SQLModel's create_all only creates missing tables, never adds missing columns to existing
+    ones. For this single-user SQLite app we handle the few additive migrations by hand, guarded
+    by PRAGMA table_info so each ALTER runs at most once.
+    """
+    additions = {
+        # table -> {column: DDL type with default}
+        "application": {"form_qa": "JSON DEFAULT '[]'"},
+    }
+    with engine.begin() as conn:
+        for table, columns in additions.items():
+            existing = {row[1] for row in conn.exec_driver_sql(
+                f"PRAGMA table_info({table})").fetchall()}
+            for column, ddl in columns.items():
+                if column not in existing:
+                    conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
 def get_session() -> Iterator[Session]:

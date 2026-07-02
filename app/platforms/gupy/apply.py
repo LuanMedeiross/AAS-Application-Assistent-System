@@ -209,10 +209,11 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
     job_d = {"title": job.title, "company": job.company, "description": job.description}
     filled: list[dict] = []
     all_unknown: list[str] = []
+    qa: list[dict] = []   # full Q&A record for user transparency (returned as result["qa"])
     cv_uploaded = False
 
     def answer_and_fill(questions, *, scope_label: str) -> tuple[list, list]:
-        nonlocal filled, all_unknown
+        nonlocal filled, all_unknown, qa
         plan = form_agent.map_form(questions, profile=master_cv, cover_letter=cover,
                                    job=job_d, extras=extras)
         for a in plan.answers:
@@ -224,6 +225,26 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
         failed = apply_answers(page, questions, plan.answers)
         if failed:
             log_fn(f"      ! não preenchi: {failed}")
+        # Record every question with what the AI answered and the outcome, so the user can review
+        # exactly what was said in their name (file uploads are not AI Q&A → skipped).
+        answers_by_key = {a.key: a for a in plan.answers}
+        failed_set, unknown_set = set(failed), set(plan.unknown)
+        for q in questions:
+            if q.kind == "file":
+                continue
+            ans = answers_by_key.get(q.key)
+            if q.key in failed_set:
+                status, value, confidence = "failed", (ans.value if ans else ""), \
+                    (ans.confidence if ans else "")
+            elif ans is not None:
+                status, value, confidence = "answered", ans.value, ans.confidence
+            elif q.key in unknown_set:
+                status, value, confidence = "unknown", "", ""
+            else:
+                status, value, confidence = "skipped", "", ""
+            qa.append({"step": scope_label, "question": q.prompt, "kind": q.kind,
+                       "required": q.required, "answer": value, "confidence": confidence,
+                       "status": status})
         return plan.unknown, failed
 
     page.goto(job.url, wait_until="domcontentloaded")
@@ -234,7 +255,7 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
         log_fn(f"\n[{step}] etapa detectada: {kind}  ({page.url})")
 
         if kind == "done":
-            return {"outcome": "already_applied", "filled": filled, "unknown": all_unknown,
+            return {"outcome": "already_applied", "filled": filled, "unknown": all_unknown, "qa": qa,
                     "message": "candidatura já estava finalizada."}
 
         if kind == "modal":
@@ -247,7 +268,7 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
 
         if kind == "start":
             if not _advance(page, [("sel", _APPLY_LINK), ("sel", 'a:has-text("Candidatar-se")')]):
-                return {"outcome": "error", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "não achei 'Candidatar-se'."}
             continue
 
@@ -269,7 +290,7 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             _settle(page)
             if not _advance(page, [("sel", 'button[name="saveAndContinueButton"]'),
                                    ("text", "Salvar e continuar")]):
-                return {"outcome": "error", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "não achei 'Salvar e continuar' em dados adicionais."}
             continue
 
@@ -286,14 +307,14 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             unknown, failed = answer_and_fill(questions, scope_label="company")
             # ⚠️ "Salvar e continuar" aqui é IRREVERSÍVEL.
             if unknown or failed:
-                return {"outcome": "needs_review", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "needs_review", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "perguntas da empresa com pendências — revise antes de salvar (irreversível)."}
             if not allow_real:
-                return {"outcome": "dry_run", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "dry_run", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "DRY-RUN: perguntas preenchidas; NÃO cliquei em 'Salvar e continuar' "
                                    "(passo irreversível). Rode com --real para enviar de verdade."}
             if not confirm("Salvar as respostas da empresa? NÃO poderão ser editadas depois."):
-                return {"outcome": "cancelled", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "cancelled", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "cancelado antes de salvar as perguntas da empresa."}
             log_fn("   → clicando 'Salvar e continuar' (irreversível, confirmado)…")
             _advance(page, [("text", "Salvar e continuar")])
@@ -314,20 +335,20 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             unknown, failed = answer_and_fill(questions, scope_label="personalize")
             # ⚠️ "Finalizar candidatura" = ENVIO.
             if not allow_real:
-                return {"outcome": "dry_run", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "dry_run", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "DRY-RUN: apresentação/skills preenchidas; NÃO enviei."}
             if not confirm("Finalizar e ENVIAR a candidatura?"):
-                return {"outcome": "cancelled", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "cancelled", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "cancelado antes de finalizar."}
             if not _click_text(page, "Finalizar candidatura"):
-                return {"outcome": "error", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "não achei 'Finalizar candidatura'."}
             # ⚠️ NÃO reportar 'sent' só por clicar — VERIFICAR a confirmação da Gupy. Sob headless/
             # concorrência o submit pode não completar antes de fechar o navegador (falso positivo).
             if _finalized_ok(page):
-                return {"outcome": "sent", "filled": filled, "unknown": all_unknown,
+                return {"outcome": "sent", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "candidatura finalizada (confirmado pela Gupy)."}
-            return {"outcome": "error", "filled": filled, "unknown": all_unknown,
+            return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
                     "message": "cliquei 'Finalizar' mas a Gupy NÃO confirmou o envio — "
                                "candidatura pode ter ficado INCOMPLETA (não marquei como enviada)."}
 
@@ -336,8 +357,8 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                            ("text", "Salvar e continuar"), ("text", "Avançar"), ("text", "Próximo")]):
             log_fn("   avançando etapa intermediária.")
             continue
-        return {"outcome": "incomplete", "filled": filled, "unknown": all_unknown,
+        return {"outcome": "incomplete", "filled": filled, "unknown": all_unknown, "qa": qa,
                 "message": f"etapa '{kind}' sem ação conhecida; parei para inspeção."}
 
-    return {"outcome": "incomplete", "filled": filled, "unknown": all_unknown,
+    return {"outcome": "incomplete", "filled": filled, "unknown": all_unknown, "qa": qa,
             "message": "excedi o máximo de etapas."}

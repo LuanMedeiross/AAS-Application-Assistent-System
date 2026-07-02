@@ -210,6 +210,16 @@ def job_cover(job_id: int, request: Request, session: Session = Depends(get_sess
     return HTMLResponse(f'<div style="white-space:pre-wrap; margin-top:8px">{text}</div>')
 
 
+@router.get("/jobs/{job_id}/questions", response_class=HTMLResponse)
+def job_questions(job_id: int, request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    """Inline fragment with the AI's screening-form Q&A for this application (expands like the
+    cover letter). Shows every question and what was answered / left unanswered."""
+    app_row = session.exec(select(Application).where(Application.job_id == job_id)).first()
+    if not app_row or not app_row.form_qa:
+        return HTMLResponse('<span class="hint">Sem perguntas registradas para esta candidatura.</span>')
+    return templates.TemplateResponse(request, "_questions.html", {"qa": app_row.form_qa})
+
+
 def _batch_ctx(session: Session, enqueued: int | None = None) -> dict:
     """Contexto do painel de candidatura em lote (status da fila em memória)."""
     snap = applyqueue.snapshot()

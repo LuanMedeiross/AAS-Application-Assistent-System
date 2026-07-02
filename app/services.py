@@ -193,6 +193,9 @@ def apply_application(
         app_row.result = "dry_run"
     elif outcome == "error":
         app_row.result, app_row.error = "error", result.get("message", "")
+    # Persist the AI's Q&A whenever the form flow actually ran (any outcome), for user review.
+    if result.get("qa"):
+        app_row.form_qa = result["qa"]
     session.add(app_row)
     session.add(job)
     audit.log(session, "auto_apply", platform=job.platform, job_id=job.id,

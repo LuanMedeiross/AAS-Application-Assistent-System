@@ -30,6 +30,7 @@
       <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
         <a href="/jobs/{{ job.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
         <button class="ghost" hx-get="/jobs/{{ job.id }}/cover" hx-target="#qc-{{ job.id }}">Ver carta</button>
+        {% if app.form_qa %}<button class="ghost" hx-get="/jobs/{{ job.id }}/questions" hx-target="#qc-{{ job.id }}">Perguntas</button>{% endif %}
         <button class="ghost" hx-post="/jobs/{{ job.id }}/prepare" hx-target="#qs-{{ job.id }}">Preparar/validar</button>
         {% if job.status == 'applied' %}
           <span class="tag ok">✅ Candidatura enviada</span>

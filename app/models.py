@@ -141,6 +141,9 @@ class Application(SQLModel, table=True):
     submitted_at: Optional[datetime] = None
     result: str = ""   # sent | error | skipped
     error: str = ""
+    # Full Q&A the AI produced for the platform's screening form (user transparency): one record
+    # per question with the given answer and its status (answered | unknown | failed | skipped).
+    form_qa: list = Field(default_factory=list, sa_column=Column(JSON))
 
 
 class PlatformSession(SQLModel, table=True):
