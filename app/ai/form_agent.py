@@ -66,10 +66,25 @@ responda SEMPRE "Sim" (é necessário para concluir e é benigno).
    - Pretensão / expectativa salarial → o valor de EXTRAS (ex.: 4000).
    - Salário ATUAL ou ÚLTIMO → assuma pretensão − 8% (ex.: pretensão 4000 → atual ≈ 3680).
    - Se a resposta for uma FAIXA (radio/select), escolha a faixa que CONTÉM o valor calculado.
-5) FACTUAL / LEGAL (já trabalhou nesta empresa? possui vínculo familiar com colaboradores? é PCD? \
-atuou em concorrente?): responda a VERDADE do PERFIL/EXTRAS (em geral "Não"). AQUI vale a linha \
-dura: NUNCA invente emprego, empresa, cargo, datas, senioridade ou certificação inexistente. Você \
-pode amplificar competência REAL, nunca criar credencial falsa.
+5) FACTUAL / LEGAL, só sobre VÍNCULO ou CREDENCIAL VERIFICÁVEL (já trabalhou NESTA empresa? vínculo \
+familiar com colaboradores? é PCD? atuou em concorrente? possui a CERTIFICAÇÃO/DIPLOMA X? tem N anos \
+de carteira?): responda a VERDADE do PERFIL/EXTRAS (em geral "Não"). Linha dura: NUNCA invente \
+emprego, empresa, cargo, datas, senioridade, certificação ou formação. ATENÇÃO: pergunta sobre \
+CONHECER / JÁ TER CONTATO / JÁ USAR / ESTUDAR uma ferramenta ou tema NÃO é isto, vai no item 6.
+6) FAMILIARIDADE / CONTATO / CONHECIMENTO com ferramenta, tecnologia, TEMA ou técnica. GATILHOS: \
+"já ESTUDOU?", "já teve CONTATO?", "CONHECE?", "já USOU?", "tem FAMILIARIDADE/NOÇÕES?", \
+"conhecimento BÁSICO/INTERMEDIÁRIO em?". Responda "Sim". Esta regra SOBREPÕE o "em geral Não" do \
+item 5. O nível cobrado é EXPOSIÇÃO, não expertise: qualquer pessoa da grande área de SEGURANÇA DA \
+INFORMAÇÃO / TI já estudou ou teve contato com esses temas. Vale para (a) o escopo do candidato, \
+(b) o DOMÍNIO DA VAGA e (c) disciplinas ADJACENTES ou OPOSTAS da mesma área: um red teamer JÁ \
+estudou/teve contato com temas de Blue Team (SIEM, SOC, logs, monitoramento, análise de alertas), \
+e vice-versa; tudo é segurança. Ex.: "contato com Wazuh (SIEM)?", "estudou temas de Blue Team?", \
+"conhece Burp/Nmap/QRadar/Splunk?", "familiaridade com Linux/redes?", "já fez threat hunting?" = \
+todos "Sim". Dizer "Sim" aqui NÃO é credencial falsa nem mentira: é competência básica e real da \
+área. Só responda "Não" se: (i) for de área TOTALMENTE alheia (ex.: "folha de pagamento SAP RH", \
+"enfermagem"), OU (ii) a pergunta cobrar EXPERIÊNCIA PRÁTICA PROFISSIONAL PROFUNDA ou CERTIFICAÇÃO \
+num produto específico que o candidato claramente não teve (ex.: "anos operando o QRadar em \
+produção", "é certificado em X"), e aí vale a honestidade do item 5.
 
 ESCOLHA (radio/select): `value` deve ser EXATAMENTE uma das `opcoes` fornecidas.
 
@@ -93,9 +108,10 @@ SKILLS (tipo "skills"): escolha as MELHORES até `max_escolhas` das `opcoes` par
 `value` = as escolhidas separadas por "; " (ex.: "Pentest (teste de penetração); Segurança \
 Cibernética; Python").
 
-`unknown`: use APENAS se responder exigiria MENTIR sobre uma credencial/experiência factual, OU \
-para DADO PESSOAL que não está no PERFIL/EXTRAS (ex.: RG, CPF, RNE, matrícula) — coloque a `key` \
-em `unknown`. NUNCA escreva "unknown"/"não sei"/"não informado" como `value` de um campo. \
+`unknown`: use APENAS se responder exigiria MENTIR sobre um VÍNCULO ou CREDENCIAL VERIFICÁVEL \
+(emprego, cargo, datas, certificação, diploma), OU para DADO PESSOAL que não está no PERFIL/EXTRAS \
+(ex.: RG, CPF, RNE, matrícula) — coloque a `key` em `unknown`. Responder "Sim" a CONHECER / TER \
+CONTATO / ESTUDAR uma ferramenta ou tema da área NÃO conta como mentira (ver item 6). NUNCA escreva "unknown"/"não sei"/"não informado" como `value` de um campo. \
 Preferência salarial, disponibilidade, consentimento e logística NUNCA vão para `unknown`.
 
 Responda SOMENTE JSON:
@@ -146,7 +162,7 @@ def map_form(
     }
     plan = chat_json(
         _SYSTEM, json.dumps(payload, ensure_ascii=False),
-        model=settings.model_generate, schema=FormPlan, temperature=0.4,
+        model=settings.model_generate, schema=FormPlan, temperature=0.3,
     )
     return _sanitize(plan, askable)
 
