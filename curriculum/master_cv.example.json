@@ -1,0 +1,41 @@
+{
+  "full_name": "Maria Exemplo da Silva",
+  "email": "maria.exemplo@email.com",
+  "phone": "+55 11 90000-0000",
+  "location": "São Paulo, SP",
+  "linkedin_url": "https://www.linkedin.com/in/maria-exemplo",
+  "portfolio_url": "https://github.com/maria-exemplo",
+  "seniority": "junior",
+  "summary": "Profissional de segurança ofensiva em transição, com foco em AppSec e pentest. Estudo contínuo de OWASP Top 10, exploração web e automação em Python. Escreva aqui 2–3 frases reais sobre você.",
+  "target_roles": ["AppSec", "Pentester Júnior", "Analista de Segurança Ofensiva"],
+  "languages": [
+    {"language": "Português", "level": "Nativo"},
+    {"language": "Inglês", "level": "Avançado"}
+  ],
+  "soft_skills": ["Comunicação", "Aprendizado contínuo", "Trabalho em equipe"],
+  "skills": ["Burp Suite", "Nmap", "OWASP Top 10", "Python", "Linux", "SQL"],
+  "experiences": [
+    {
+      "title": "Estágio em Segurança da Informação",
+      "company": "Empresa Exemplo Ltda",
+      "start": "2023-01",
+      "end": "2024-01",
+      "bullets": [
+        "Apoiei testes de segurança em aplicações web internas.",
+        "Documentei achados e recomendações de correção."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Laboratório de pentest (home lab)",
+      "description": "Ambiente próprio para praticar exploração web e revisão de código.",
+      "url": "https://github.com/maria-exemplo/lab"
+    }
+  ],
+  "education": [
+    {"degree": "Tecnólogo em Segurança da Informação", "institution": "Faculdade Exemplo", "start": "2021", "end": "2024"}
+  ],
+  "certifications": ["eJPT (em andamento)"],
+  "achievements": ["Top 10 em CTF universitário (exemplo)"]
+}

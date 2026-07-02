@@ -6,6 +6,27 @@ Ciclo: **descobrir → ranquear → adaptar CV/carta → preencher → enviar**,
 > Documentação: `ideia.md` (visão) · `SPEC.md` (o quê) · `docs/arquitetura.md` (como) ·
 > `docs/design.md` (UI) · `ATS.md` (regras de currículo) · `CLAUDE.md` (guia + Sistema Karpathy).
 
+## Licença
+
+[Apache-2.0](LICENSE). Fornecido **"COMO ESTÁ", sem garantia** (ver seções 7–8 da licença).
+
+## ⚠️ Uso responsável (leia antes de usar)
+
+Esta é uma ferramenta **local, single-user**, para **uso pessoal**. Ao usá-la, **você** é o único
+responsável por como a opera:
+
+- **Respeite os Termos de Serviço** de cada plataforma (Gupy, InHire, Indeed, LinkedIn etc.).
+  Automação pode violar o ToS e resultar em **bloqueio da sua conta** — o risco é seu.
+- **Não fabrique informação.** O projeto foi desenhado para adaptar honestamente experiências e
+  projetos reais, **nunca** inventar vínculo, cargo, senioridade ou certificação (ver `ATS.md`).
+- **Seus dados são seus.** CV, credenciais e cookies de sessão ficam **só na sua máquina**
+  (`.env`, `data/`, `curriculum/` são gitignorados). Não commite dados pessoais.
+- **Revisão humana por padrão.** O envio real exige aprovação explícita; mantenha assim até
+  confiar plenamente no comportamento.
+
+Os mantenedores não se responsabilizam por bloqueios de conta, uso indevido ou qualquer dano
+decorrente do uso desta ferramenta.
+
 ## Setup
 
 ```powershell

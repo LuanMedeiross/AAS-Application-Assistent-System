@@ -6,6 +6,11 @@ data/
 # Sessões de plataforma (cookies) — nunca versionar
 **/sessions/
 
+# CV pessoal do usuário — cada um tem o seu. Só exemplos/README vão pro git; os reais NÃO.
+curriculum/*
+!curriculum/*.example.json
+!curriculum/README.md
+
 # Python
 __pycache__/
 *.py[cod]
