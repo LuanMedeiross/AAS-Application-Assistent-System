@@ -146,6 +146,13 @@ def apply_application(
     app_row = session.exec(select(Application).where(Application.job_id == job.id)).first()
     if app_row is None or not app_row.cv_pdf_path:
         return {"outcome": "error", "message": "Gere o CV/carta antes de candidatar-se."}
+    # Idempotência: já enviada → NÃO reabre o browser (evita duplo-envio irreversível e sobe
+    # Chromium à toa). `result == "sent"` só é gravado após confirmação real da Gupy (_finalized_ok
+    # no apply.py; falso positivo foi eliminado na saga A–G). O caso inverso — DB diz não-enviada
+    # mas a plataforma já concluiu — é coberto pelo plugin, que retorna 'already_applied' e corrige.
+    if app_row.result == "sent":
+        return {"outcome": "already_applied",
+                "message": "Candidatura já enviada anteriormente (não reabri o navegador)."}
     if not has_session(job.platform):
         return {"outcome": "error",
                 "message": f"Sem sessão '{job.platform}'. Rode: python scripts/login.py {job.platform}"}
