@@ -1,4 +1,4 @@
-"""Manifest declarativo do plugin Gupy (canal api). Ver docs/plataformas.md."""
+"""Manifest declarativo do plugin Gupy (canal api). Ver docs/PLATFORMS.md."""
 from __future__ import annotations
 
 from .apply import prepare, submit

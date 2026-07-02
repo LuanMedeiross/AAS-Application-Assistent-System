@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 JOBS_URL = "https://employability-portal.gupy.io/api/v1/jobs"
 
 # Filtros padrão (decisão do usuário). `type` e `workplaceType` são filtrados client-side porque
-# a API só aceita 1 valor por request. Ver docs/plataformas.md (estudo da API).
+# a API só aceita 1 valor por request. Ver docs/PLATFORMS.md (estudo da API).
 DEFAULT_TYPES = frozenset({"vacancy_type_effective", "vacancy_type_internship"})  # efetiva + estágio
 DEFAULT_WORKPLACES = frozenset({"remote", "hybrid"})  # priorizar remoto (+ híbrido; sem presencial puro)
 PAGE_LIMIT = 100  # máximo aceito pela API (limit>100 retorna vazio)
@@ -136,7 +136,7 @@ def discover(
     Pipeline (barato → caro): pagina tudo (limit=100 + offset) → filtra por TIPO (efetiva/estágio)
     e MODELO (remoto/híbrido) client-side → filtra RECÊNCIA (≤max_age_days) → verifica se ainda
     está ABERTA (status "published" no __NEXT_DATA__). Regra do projeto: recência + aberta.
-    `types`/`workplaces` vazios = sem esse filtro. Ver docs/plataformas.md.
+    `types`/`workplaces` vazios = sem esse filtro. Ver docs/PLATFORMS.md.
     """
     session = session or new_session()
     seen_raw: dict[str, dict] = {}

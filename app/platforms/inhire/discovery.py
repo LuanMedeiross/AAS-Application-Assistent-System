@@ -1,4 +1,4 @@
-"""Descoberta de vagas no InHire (canal api). Ver docs/plataformas.md.
+"""Descoberta de vagas no InHire (canal api). Ver docs/PLATFORMS.md.
 
 InHire é POR EMPRESA (tenant): o endpoint público exige header X-Tenant=<empresa> e devolve
 todas as vagas daquela empresa (a busca é client-side). Então descobrimos por uma lista de

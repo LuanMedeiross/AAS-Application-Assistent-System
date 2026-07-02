@@ -1,84 +1,84 @@
 # SPEC — Application Assistant
 
-> Especificação funcional: o "o quê". Fonte da verdade para o código (spec-first).
-> Visão/"por quê" em `ideia.md`. Arquitetura/"como" em `docs/arquitetura.md`.
+> Functional specification: the "what". Source of truth for the code (spec-first).
+> Vision/"why" in `IDEA.md`. Architecture/"how" in `docs/ARCHITECTURE.md`.
 
-## 1. Requisitos funcionais (RF)
+## 1. Functional requirements (RF)
 
-| ID | Requisito |
+| ID | Requirement |
 |---|---|
-| RF-01 | Manter um **Profile** único do usuário (dados pessoais, experiências, skills, cargos-alvo, CV-mestre). |
-| RF-02 | **Importar CV-mestre do export oficial de dados do LinkedIn** (ZIP/CSVs: Profile, Positions, Skills, Education, Certifications) → parse → `master_cv`; revisão/edição no dashboard. Sem scraping (zero risco de bloqueio). |
-| RF-03 | **Descobrir vagas** em tempo real por keywords dos cargos-alvo, por plataforma habilitada, **filtrando pela senioridade derivada do `master_cv`** (ex.: júnior/entry-level se não há experiência formal). |
-| RF-04 | **Ranquear** cada vaga (0–100 + justificativa) por aderência ao Profile. |
-| RF-05 | **Gerar CV + carta sob medida** por vaga, **no idioma da descrição** da vaga. |
-| RF-06 | **Renderizar CV/carta em PDF** a partir de template. |
-| RF-07 | **Preencher a candidatura** pelo canal da plataforma (`api`/`browser`/`email`) e **parar antes do envio final**. |
-| RF-08 | **Fila de aprovação**: usuário revisa e aprova/rejeita cada candidatura antes do envio. |
-| RF-09 | **Registrar** cada candidatura enviada (Application) e cada ação relevante (AuditLog). |
-| RF-10 | **Gerenciar sessões** por plataforma (login manual → `storage_state` salvo e reutilizado). |
-| RF-11 | **Acionar captcha** (2Captcha) quando o canal `browser` for bloqueado. |
-| RF-12 | **Circuit breaker**: pausar um plugin após N falhas/captchas seguidos e sinalizar no dashboard. |
-| RF-13 | **Modo automático opcional** (toggle): enviar sem revisão, respeitando filtros (score mínimo, plataformas, cadência). |
+| RF-01 | Maintain a single user **Profile** (personal data, experience, skills, target roles, master CV). |
+| RF-02 | **Import the master CV from LinkedIn's official data export** (ZIP/CSVs: Profile, Positions, Skills, Education, Certifications) → parse → `master_cv`; review/edit in the dashboard. No scraping (zero blocking risk). |
+| RF-03 | **Discover jobs** in real time by target-role keywords, per enabled platform, **filtering by the seniority derived from `master_cv`** (e.g. junior/entry-level when there is no formal experience). |
+| RF-04 | **Rank** each job (0–100 + rationale) by fit to the Profile. |
+| RF-05 | **Generate a tailored CV + cover letter** per job, **in the language of the job description**. |
+| RF-06 | **Render the CV/cover letter as a PDF** from a template. |
+| RF-07 | **Fill the application** through the platform's channel (`api`/`browser`/`email`) and **stop before the final submission**. |
+| RF-08 | **Approval queue**: the user reviews and approves/rejects each application before submission. |
+| RF-09 | **Log** each submitted application (Application) and each relevant action (AuditLog). |
+| RF-10 | **Manage sessions** per platform (manual login → `storage_state` saved and reused). |
+| RF-11 | **Trigger captcha** (2Captcha) when the `browser` channel is blocked. |
+| RF-12 | **Circuit breaker**: pause a plugin after N consecutive failures/captchas and flag it in the dashboard. |
+| RF-13 | **Optional automatic mode** (toggle): submit without review, respecting filters (minimum score, platforms, cadence). |
 
-## 2. Requisitos não-funcionais (RNF)
+## 2. Non-functional requirements (RNF)
 
-| ID | Requisito |
+| ID | Requirement |
 |---|---|
-| RNF-01 | App **local single-user**; SQLite; sem dependência de serviço hospedado. |
-| RNF-02 | **Segredos fora do git** (`.env`): `DEEPSEEK_API_KEY`, `CAPTCHA_API_KEY`, SMTP. |
-| RNF-03 | **Nunca armazenar senhas** de plataforma — só `storage_state` (cookies de sessão). |
-| RNF-04 | Plugins **não abrem browser/HTTP sozinhos** — recebem `ctx`/`session` do harness. |
-| RNF-05 | Saídas da IA **validadas contra schema** antes de uso. |
-| RNF-06 | Cada plugin testável **isoladamente** via `apply_harness.py` (dry-run, sem enviar). |
-| RNF-07 | Cadência/volume configuráveis; comportamento "humano" (pausas, ordem) no canal browser. |
+| RNF-01 | **Local single-user** app; SQLite; no dependency on a hosted service. |
+| RNF-02 | **Secrets out of git** (`.env`): `DEEPSEEK_API_KEY`, `CAPTCHA_API_KEY`, SMTP. |
+| RNF-03 | **Never store platform passwords** — only `storage_state` (session cookies). |
+| RNF-04 | Plugins **do not open browser/HTTP on their own** — they receive `ctx`/`session` from the harness. |
+| RNF-05 | AI outputs **validated against schema** before use. |
+| RNF-06 | Each plugin testable **in isolation** via `apply_harness.py` (dry-run, without submitting). |
+| RNF-07 | Configurable cadence/volume; "human" behavior (pauses, ordering) on the browser channel. |
 
-## 3. Modelos de dados (SQLite / SQLModel)
+## 3. Data models (SQLite / SQLModel)
 
-> Schema indicativo; detalhes de tipos podem ajustar na implementação.
+> Indicative schema; type details may be adjusted during implementation.
 
-**Profile** (linha única no MVP)
+**Profile** (single row in the MVP)
 - `id`, `full_name`, `email`, `phone`, `location`, `linkedin_url`
-- `summary` (resumo profissional), `experiences` (JSON), `skills` (JSON), `education` (JSON)
-- `target_roles` (JSON: lista de cargos-alvo + keywords), `languages` (JSON)
-- `seniority` (`entry`/`junior`/`mid`/`senior`; **IA sugere a partir do `master_cv`, usuário
-  confirma/ajusta** no dashboard; usado para filtrar a descoberta de vagas — ver RF-03)
-- `master_cv` (JSON estruturado, fonte para o tailor; **seed inicial vem de
+- `summary` (professional summary), `experiences` (JSON), `skills` (JSON), `education` (JSON)
+- `target_roles` (JSON: list of target roles + keywords), `languages` (JSON)
+- `seniority` (`entry`/`junior`/`mid`/`senior`; **AI suggests it from `master_cv`, the user
+  confirms/adjusts** in the dashboard; used to filter job discovery — see RF-03)
+- `master_cv` (structured JSON, source for the tailor; **initial seed comes from
   `curriculum/curriculo.md`**), `created_at`, `updated_at`
 
-**Job** (vaga descoberta)
+**Job** (discovered job)
 - `id`, `platform` (gupy/inhire/indeed/...), `external_id`, `url`
-- `title`, `company`, `location`, `description`, `raw` (JSON do payload original)
+- `title`, `company`, `location`, `description`, `raw` (JSON of the original payload)
 - `score` (0–100, nullable), `score_reason` (nullable)
 - `status` (`discovered`/`ranked`/`tailored`/`pending_approval`/`approved`/`applied`/`rejected`/`failed`)
 - `discovered_at`
 
-**Application** (candidatura)
+**Application** (application)
 - `id`, `job_id` (FK), `cv_pdf_path`, `cover_letter_path`
-- `cv_json` (JSON gerado), `language` (idioma usado)
+- `cv_json` (generated JSON), `language` (language used)
 - `submitted_at` (nullable), `result` (`sent`/`error`/`skipped`), `error` (nullable)
 
-**PlatformSession** (sessão por plataforma)
+**PlatformSession** (per-platform session)
 - `id`, `platform`, `storage_state_path`, `valid` (bool), `last_login_at`
 
-**AuditLog** (trilha de auditoria)
+**AuditLog** (audit trail)
 - `id`, `ts`, `platform`, `action` (`discover`/`rank`/`tailor`/`fill`/`submit`/`captcha`/`error`)
 - `job_id` (nullable), `detail` (JSON)
 
-## 4. Contrato dos plugins (por canal)
+## 4. Plugin contract (per channel)
 
-Cada plugin = pasta `app/platforms/<id>/` com:
-- **`manifest.py`** — declarativo: `id`, `name`, `channel` (`api`|`browser`|`email`),
-  `base_url`/endpoints, `captcha` esperado, `build()` lazy. Registrado em `platforms/__init__.py`.
+Each plugin = an `app/platforms/<id>/` folder with:
+- **`manifest.py`** — declarative: `id`, `name`, `channel` (`api`|`browser`|`email`),
+  `base_url`/endpoints, expected `captcha`, lazy `build()`. Registered in `platforms/__init__.py`.
 - **`discovery.py`** — `discover(keywords, ctx_or_session) -> list[JobPosting]`
-  (ausente no canal `email`).
+  (absent on the `email` channel).
 - **`apply.py`** — `apply(job, application, ctx_or_session, *, dry_run) -> ApplyResult`.
-  Para antes do envio final quando em modo manual.
+  Stops before the final submission when in manual mode.
 
-**Regras (validadas por `check_contracts.py`):** plugin não chama `chromium.launch`/`sync_playwright`,
-não importa `web/`, usa os schemas normalizados, e a assinatura de `discover`/`apply` casa com o canal.
+**Rules (validated by `check_contracts.py`):** a plugin does not call `chromium.launch`/`sync_playwright`,
+does not import `web/`, uses the normalized schemas, and the `discover`/`apply` signature matches the channel.
 
-## 5. Contratos de saída da IA (JSON, validados)
+## 5. AI output contracts (JSON, validated)
 
 **Ranker** (`ai/ranker.py`)
 ```json
@@ -94,62 +94,62 @@ não importa `web/`, usa os schemas normalizados, e a assinatura de `discover`/`
   "cover_letter": "texto da carta no idioma da vaga"
 }
 ```
-- CV **adaptado agressivamente à descrição da vaga**, **no formato ATS** (ver `ATS.md`) e com
-  **voz humana não detectável como IA** (ver `HUMANIZE.md`) — ambos obrigatórios: coluna única,
-  headings canônicos, keywords espelhadas, skills matrix, bullets com métrica, ritmo de frase
-  variado, sem vocabulário/clichês de IA, carta de 200–300 palavras com micro-episódio real.
-- **Base = `Profile.master_cv`** (real e verificável). O tailor **reframe e enfatiza** autoestudo,
-  projetos e home labs como experiência concreta, maximizando aderência à vaga — **sem fabricar
-  vínculo empregatício (empresa/cargo/datas) que não existiu** (quebra na entrevista técnica e no
-  background check). Lacuna de experiência é coberta por seção **Projetos/Labs** forte, não por
-  emprego inventado.
+- CV **aggressively tailored to the job description**, **in ATS format** (see `ATS.md`) and with a
+  **human voice not detectable as AI** (see `HUMANIZE.md`) — both mandatory: single column,
+  canonical headings, mirrored keywords, skills matrix, bullets with metrics, varied sentence
+  rhythm, no AI vocabulary/clichés, a 200–300 word cover letter with a real micro-episode.
+- **Base = `Profile.master_cv`** (real and verifiable). The tailor **reframes and emphasizes** self-study,
+  projects, and home labs as concrete experience, maximizing fit to the job — **without fabricating
+  employment (company/role/dates) that never existed** (it falls apart in the technical interview and the
+  background check). An experience gap is covered by a strong **Projects/Labs** section, not by an
+  invented job.
 
-**Form agent** (`ai/form_agent.py`, canal browser)
+**Form agent** (`ai/form_agent.py`, browser channel)
 ```json
 { "fields": [ { "selector_hint": "...", "label": "...", "value": "...", "type": "text|select|file|radio" } ],
   "unknown": ["labels que a IA não soube responder"] }
 ```
 
-## 6. Endpoints do dashboard (FastAPI + HTMX)
+## 6. Dashboard endpoints (FastAPI + HTMX)
 
-| Método | Rota | Função |
+| Method | Route | Function |
 |---|---|---|
-| GET | `/` | Dashboard (resumo: vagas, fila de aprovação, status dos plugins). |
-| GET/POST | `/profile` | Ver/editar Profile; ação de importar do LinkedIn. |
-| POST | `/discover` | Disparar descoberta (plataformas + keywords). |
-| GET | `/jobs` | Listar vagas (ordenadas por score), filtros por status/plataforma. |
-| POST | `/jobs/{id}/rank` | Ranquear (ou re-ranquear) uma vaga. |
-| POST | `/jobs/{id}/tailor` | Gerar CV/carta + PDF para a vaga. |
-| GET | `/jobs/{id}/preview` | Preview do CV/carta (PDF). |
-| POST | `/jobs/{id}/prepare` | Preencher candidatura (dry-run → fila de aprovação). |
-| POST | `/jobs/{id}/approve` | Aprovar e enviar. |
-| POST | `/jobs/{id}/reject` | Rejeitar/descartar. |
-| GET | `/sessions` | Status das sessões por plataforma. |
-| GET | `/audit` | Trilha de auditoria. |
+| GET | `/` | Dashboard (summary: jobs, approval queue, plugin status). |
+| GET/POST | `/profile` | View/edit Profile; import-from-LinkedIn action. |
+| POST | `/discover` | Trigger discovery (platforms + keywords). |
+| GET | `/jobs` | List jobs (sorted by score), filters by status/platform. |
+| POST | `/jobs/{id}/rank` | Rank (or re-rank) a job. |
+| POST | `/jobs/{id}/tailor` | Generate CV/cover letter + PDF for the job. |
+| GET | `/jobs/{id}/preview` | Preview the CV/cover letter (PDF). |
+| POST | `/jobs/{id}/prepare` | Fill the application (dry-run → approval queue). |
+| POST | `/jobs/{id}/approve` | Approve and submit. |
+| POST | `/jobs/{id}/reject` | Reject/discard. |
+| GET | `/sessions` | Per-platform session status. |
+| GET | `/audit` | Audit trail. |
 
-## 7. Fluxos por canal
+## 7. Flows per channel
 
-> **Filtro de senioridade na descoberta:** toda `discovery` aplica o nível de senioridade do
-> Profile (RF-03) — ex.: prioriza vagas júnior/entry-level quando não há experiência formal,
-> evitando gastar candidatura/IA em vagas sênior fora de alcance. O `ranker` também penaliza
-> descompasso de senioridade.
+> **Seniority filter in discovery:** every `discovery` applies the Profile's seniority level
+> (RF-03) — e.g. it prioritizes junior/entry-level jobs when there is no formal experience,
+> avoiding spending an application/AI on senior jobs out of reach. The `ranker` also penalizes
+> a seniority mismatch.
 
-- **API (Gupy/InHire):** `discovery` chama a API pública → `JobPosting[]`. `apply` monta o
-  payload de candidatura rápida (CV em base64 + respostas das perguntas) → para antes do POST
-  final em modo manual. **Gupy discovery confirmado:**
-  `GET employability-portal.gupy.io/api/v1/jobs?jobName=<kw>&offset=&limit=` (sem auth) — ver
-  `docs/plataformas.md`.
-- **Browser (Indeed/Catho/LinkedIn):** harness abre contexto com `storage_state` + stealth →
-  `discovery` navega busca → `apply` extrai `FormField[]`, `form_agent` mapeia respostas,
-  Playwright preenche e anexa CV → para antes do submit. Bloqueio → `captcha.py`.
-- **Email direto:** sem discovery; `apply` monta email (CV anexo + carta no corpo) via SMTP.
+- **API (Gupy/InHire):** `discovery` calls the public API → `JobPosting[]`. `apply` assembles the
+  quick-application payload (CV in base64 + answers to the questions) → stops before the final
+  POST in manual mode. **Gupy discovery confirmed:**
+  `GET employability-portal.gupy.io/api/v1/jobs?jobName=<kw>&offset=&limit=` (no auth) — see
+  `docs/PLATFORMS.md`.
+- **Browser (Indeed/Catho/LinkedIn):** the harness opens a context with `storage_state` + stealth →
+  `discovery` navigates the search → `apply` extracts `FormField[]`, `form_agent` maps the answers,
+  Playwright fills them in and attaches the CV → stops before submit. Blocked → `captcha.py`.
+- **Direct email:** no discovery; `apply` composes an email (CV attached + cover letter in the body) via SMTP.
 
-## 8. Critérios de aceite por fase
+## 8. Acceptance criteria per phase
 
-- **Fase 1:** Profile importado do LinkedIn e editável; `ai/deepseek.py` retorna JSON válido.
-- **Fase 2:** `scripts/login.py` salva sessão; `apply_harness.py` roda um plugin de exemplo em dry-run.
-- **Fase 3:** Gupy descobre vagas reais e lista no dashboard; `apply` valida em dry-run.
-- **Fase 4:** vagas exibidas ordenadas por score com justificativa.
-- **Fase 5:** CV/carta gerados no idioma da vaga e renderizados em PDF visível no preview.
-- **Fase 6 (fatia vertical):** 1 candidatura real na Gupy, revisada e aprovada, registrada em Application+AuditLog.
-- **Fase 7:** ao menos +1 plugin por canal (browser, email) funcionando; toggle de modo automático com filtros.
+- **Phase 1:** Profile imported from LinkedIn and editable; `ai/deepseek.py` returns valid JSON.
+- **Phase 2:** `scripts/login.py` saves a session; `apply_harness.py` runs a sample plugin in dry-run.
+- **Phase 3:** Gupy discovers real jobs and lists them in the dashboard; `apply` validates in dry-run.
+- **Phase 4:** jobs displayed sorted by score with a rationale.
+- **Phase 5:** CV/cover letter generated in the job's language and rendered as a PDF visible in the preview.
+- **Phase 6 (vertical slice):** 1 real application on Gupy, reviewed and approved, logged in Application+AuditLog.
+- **Phase 7:** at least +1 plugin per channel (browser, email) working; automatic-mode toggle with filters.

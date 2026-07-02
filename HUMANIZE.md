@@ -1,99 +1,99 @@
-# HUMANIZE — Escrever candidaturas que não parecem feitas por IA
+# HUMANIZE — Writing applications that don't look AI-made
 
-> **Documento crítico.** Todo texto de candidatura gerado (resumo, bullets de CV, **carta de
-> apresentação**, respostas de formulário) DEVE seguir estas regras. Um texto que "cheira a IA"
-> mancha a candidatura — recrutadores rejeitam por parecer genérico/robótico. Pesquisa 2025–2026
-> (fontes no fim). Anda junto com `ATS.md` (formato/keywords) — aqui é **voz humana**.
+> **Critical document.** Every generated application text (summary, resume bullets, **cover
+> letter**, form answers) MUST follow these rules. Text that "smells like AI" taints the
+> application — recruiters reject it for looking generic/robotic. 2025–2026 research (sources at
+> the end). Works alongside `ATS.md` (format/keywords) — this one is about the **human voice**.
 
-## Como o texto de IA é detectado (entender para evitar)
+## How AI text is detected (understand it to avoid it)
 
-Detectores (GPTZero, Originality.ai, Turnitin) e recrutadores experientes olham para:
+Detectors (GPTZero, Originality.ai, Turnitin) and experienced recruiters look for:
 
-1. **Perplexidade baixa** — texto previsível, "a palavra esperada sempre". Humano surpreende.
-2. **Burstiness baixa** — frases todas do mesmo tamanho/ritmo. Humano mistura curtas e longas.
-3. **Marcadores lexicais** — vocabulário e frases que a IA repete (lista abaixo).
-4. **Previsibilidade estrutural** — parágrafos uniformes, "regra de três" em tudo, paralelismos.
-5. **Ausência de detalhe específico vivido** — IA fala genérico; humano cita ferramenta, número,
-   episódio concreto.
+1. **Low perplexity** — predictable text, "always the expected word". A human surprises you.
+2. **Low burstiness** — sentences all the same length/rhythm. A human mixes short and long.
+3. **Lexical markers** — vocabulary and phrases that AI repeats (list below).
+4. **Structural predictability** — uniform paragraphs, the "rule of three" everywhere, parallelisms.
+5. **Absence of specific lived detail** — AI speaks generically; a human cites a tool, a number,
+   a concrete episode.
 
-> **Regra-mãe:** nenhum sinal isolado condena; é o **cluster** que denuncia. O melhor disfarce
-> não é truque — é **especificidade real** (algo que só você viveu) + ritmo irregular.
+> **Master rule:** no single signal is damning; it's the **cluster** that gives it away. The best
+> disguise is not a trick — it's **real specificity** (something only you lived) + irregular rhythm.
 
-## O que NÃO escrever (tells de IA)
+## What NOT to write (AI tells)
 
-**Vocabulário queimado (evitar):** delve/mergulhar, leverage/alavancar, utilize/utilizar,
+**Burned vocabulary (avoid):** delve/mergulhar, leverage/alavancar, utilize/utilizar,
 showcase/exibir, foster/fomentar, robust/robusto, seamless, pivotal, crucial, underscore,
 tapestry, synergy, landscape/cenário, realm/âmbito, testament, vibrant, meticulous, embark,
 endeavor, "game changer", "in today's world / no mundo de hoje", "in the ever-evolving / em
 constante evolução", "fast-paced".
 
-**Frases-clichê de carta (proibidas):**
+**Cover-letter cliché phrases (forbidden):**
 - "I am writing to express my interest…" / "Venho por meio desta…" / "Escrevo para expressar
   meu interesse…"
 - "proven track record" / "histórico comprovado", "detail-oriented professional" /
   "profissional orientado a detalhes", "results-driven", "team player"
 - "I am excited about the opportunity to contribute to your team's success" / "Estou animado com
   a oportunidade de contribuir para o sucesso da equipe"
-- "passionate about" / "apaixonado por" (sem prova concreta logo em seguida)
+- "passionate about" / "apaixonado por" (without concrete proof right afterward)
 
-**Padrões estruturais a evitar:**
-- **Regra de três** em tudo ("rápido, eficiente e escalável").
-- **Paralelismos negativos**: "não apenas X, mas também Y" / "not just… but also".
-- **Particípios empilhados**: "…aprimorando X, fomentando Y, destacando Z".
-- **Verbos inflados no lugar de "é/tem"**: "serve como", "representa", "destaca-se como".
-- **Transições formais**: "Além disso", "Ademais", "Outrossim", "Furthermore", "Moreover".
-- Parágrafos todos do mesmo tamanho; gramática perfeita demais, sem nenhuma marca pessoal.
+**Structural patterns to avoid:**
+- **Rule of three** everywhere ("fast, efficient, and scalable").
+- **Negative parallelisms**: "não apenas X, mas também Y" / "not just… but also".
+- **Stacked participles**: "…aprimorando X, fomentando Y, destacando Z".
+- **Inflated verbs in place of "is/has"**: "serves as", "represents", "stands out as".
+- **Formal transitions**: "Além disso", "Ademais", "Outrossim", "Furthermore", "Moreover".
+- Paragraphs all the same length; grammar too perfect, without any personal touch.
 
-**Pontuação/format:** não abusar de em dash (—); não usar negrito decorativo em toda frase;
-não usar Title Case em títulos; não encher de bullets idênticos.
+**Punctuation/format:** don't overuse the em dash (—); don't use decorative bold in every
+sentence; don't use Title Case in headings; don't stuff the text with identical bullets.
 
-## O que ESCREVER (voz humana)
+## What TO write (the human voice)
 
-1. **Varie o ritmo (burstiness alta).** Misture frases curtas (5–8 palavras) com longas (25–35).
-   Uma frase de impacto curta depois de uma longa quebra o padrão de máquina.
-2. **Seja específico e concreto.** Nomeie ferramenta, alvo, número, resultado. Ex.: em vez de
-   "atuei com pentest", escreva "explorei IDOR numa API REST e escalei para account takeover;
-   reportei com PoC no HackerOne". Detalhe que só você viveu = indetectável.
-3. **Um micro-episódio (30–60 palavras).** Um momento real com decisão/tensão: o que estava
-   quebrado, o que você fez, o que aprendeu. (Sem inventar — usar fatos do `master_cv`.)
-4. **Contrações e linguagem natural** (no idioma da vaga). PT: "tô" não, mas evite formalidade
-   empolada; prefira "o que me chamou aqui foi…" a "tenho a honra de…".
-5. **Transições humanas**: "o ponto é", "na prática", "foi aí que", "o que me puxou pra essa
-   vaga". Em inglês: "here's what I mean", "the thing is".
-6. **Métrica concreta** em vez de adjetivo: "reduzi o tempo de resposta em 60%" > "melhorei
-   significativamente a performance".
-7. **Gancho de abertura** que cita a vaga + um projeto/feito real seu — nada de "Venho por meio
+1. **Vary the rhythm (high burstiness).** Mix short sentences (5–8 words) with long ones (25–35).
+   A short punchy sentence after a long one breaks the machine pattern.
+2. **Be specific and concrete.** Name the tool, target, number, result. E.g.: instead of
+   "worked with pentesting", write "exploited an IDOR in a REST API and escalated to account
+   takeover; reported it with a PoC on HackerOne". A detail only you lived = undetectable.
+3. **One micro-episode (30–60 words).** A real moment with a decision/tension: what was broken,
+   what you did, what you learned. (No inventing — use facts from `master_cv`.)
+4. **Contractions and natural language** (in the job's language). PT: not "tô", but avoid stuffy
+   formality; prefer "o que me chamou aqui foi…" to "tenho a honra de…".
+5. **Human transitions**: "o ponto é", "na prática", "foi aí que", "o que me puxou pra essa
+   vaga". In English: "here's what I mean", "the thing is".
+6. **Concrete metric** instead of an adjective: "cut response time by 60%" > "significantly
+   improved performance".
+7. **Opening hook** that cites the job + a real project/achievement of yours — no "Venho por meio
    desta".
 
-## Regras específicas da carta de apresentação
+## Cover-letter-specific rules
 
-- **Tamanho:** 200–300 palavras. Carta longa e uniforme parece IA e cansa o recrutador.
-- **Estrutura Problema → Ação → Impacto:** abra com um gancho concreto (você + a vaga), conte um
-  feito real ligado ao que a vaga pede, feche com uma métrica e **uma pergunta específica sobre a
-  vaga/empresa** (mostra que leu de verdade).
-- **Conecte ao real:** cada afirmação genérica deve virar cena + número (ver `ATS.md` —
-  amplificar competência real, nunca fabricar fato).
-- **Idioma = idioma da vaga** (regra do tailor). Aplique estes princípios no idioma certo.
+- **Length:** 200–300 words. A long, uniform letter looks like AI and tires the recruiter.
+- **Problem → Action → Impact structure:** open with a concrete hook (you + the job), tell a real
+  achievement tied to what the job asks for, close with a metric and **a specific question about
+  the job/company** (shows you actually read it).
+- **Connect it to the real:** every generic claim must become a scene + a number (see `ATS.md` —
+  amplify real competence, never fabricate facts).
+- **Language = job language** (the tailor's rule). Apply these principles in the right language.
 
-## Checklist que o tailor aplica a CADA texto gerado
+## Checklist the tailor applies to EACH generated text
 
-- [ ] Zero palavras da lista queimada; zero frases-clichê de carta.
-- [ ] Frases variam de tamanho (tem curta e tem longa) — sem ritmo uniforme.
-- [ ] Pelo menos 1 detalhe específico real (ferramenta/alvo/número) por parágrafo.
-- [ ] 1 micro-episódio concreto na carta (decisão/aprendizado), baseado em fato real.
-- [ ] Sem regra de três repetitiva, sem paralelismo "não só… mas também", sem particípios empilhados.
-- [ ] Abertura sem clichê; fechamento com métrica + pergunta específica sobre a vaga.
-- [ ] Carta entre 200–300 palavras; em dash com parcimônia; sem negrito decorativo.
-- [ ] Soa como a pessoa falando, não como um modelo. (Teste: "um amigo reconheceria minha voz?")
+- [ ] Zero words from the burned list; zero cover-letter cliché phrases.
+- [ ] Sentences vary in length (there's a short one and a long one) — no uniform rhythm.
+- [ ] At least 1 real specific detail (tool/target/number) per paragraph.
+- [ ] 1 concrete micro-episode in the letter (decision/lesson), based on a real fact.
+- [ ] No repetitive rule of three, no "not just… but also" parallelism, no stacked participles.
+- [ ] Cliché-free opening; closing with a metric + a specific question about the job.
+- [ ] Letter between 200–300 words; em dash used sparingly; no decorative bold.
+- [ ] Sounds like the person speaking, not like a model. (Test: "would a friend recognize my voice?")
 
-## Relação com `ATS.md`
+## Relationship with `ATS.md`
 
-`ATS.md` garante que o robô (parser) **leia e ranqueie**; `HUMANIZE.md` garante que o humano
-(recrutador) **não desconfie**. Os dois juntos: keywords e formato corretos **e** voz natural.
-Em conflito, a especificidade real resolve os dois — keyword verdadeira contada como cena vira
-match no ATS e prova humana ao mesmo tempo.
+`ATS.md` ensures the robot (parser) **reads and ranks**; `HUMANIZE.md` ensures the human
+(recruiter) **doesn't get suspicious**. The two together: correct keywords and format **and** a
+natural voice. In a conflict, real specificity resolves both — a true keyword told as a scene
+becomes a match in the ATS and human proof at the same time.
 
-## Fontes
+## Sources
 - [Como detectores de IA usam perplexidade e burstiness — Hastewire](https://hastewire.com/blog/how-ai-detectors-calculate-perplexity-and-burstiness)
 - [How AI Detectors Work — GPTZero](https://gptzero.me/news/how-ai-detectors-work/)
 - [Wikipedia: Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing)

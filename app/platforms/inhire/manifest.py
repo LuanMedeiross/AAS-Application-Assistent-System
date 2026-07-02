@@ -1,4 +1,4 @@
-"""Manifest do plugin InHire (canal api, por empresa/tenant). Ver docs/plataformas.md."""
+"""Manifest do plugin InHire (canal api, por empresa/tenant). Ver docs/PLATFORMS.md."""
 from __future__ import annotations
 
 from .apply import prepare, submit

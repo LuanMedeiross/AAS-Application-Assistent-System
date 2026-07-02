@@ -1,98 +1,98 @@
 # Application Assistant
 
-> **Contexto-mestre do projeto** (carregado em toda sessão). App que automatiza candidatura a
-> vagas usando DeepSeek (IA) + automação de navegador/API. Detalhe que não é regra mora em
-> `docs/` e é lido sob demanda. **Em dúvida sobre uma área, abra o doc dela ANTES de mexer.**
+> **Project master context** (loaded in every session). App that automates job applications
+> using DeepSeek (AI) + browser/API automation. Detail that is not a rule lives in
+> `docs/` and is read on demand. **When in doubt about an area, open its doc BEFORE touching it.**
 
-App **local single-user** (Python, FastAPI + HTMX) que executa o ciclo
-**descobrir → ranquear → adaptar CV/carta → preencher → enviar** vagas, com human-in-the-loop.
-Arquitetura: **harness compartilhado (`core/`) + plugins finos por plataforma (`platforms/`)**,
-inspirada no `automation_launcher`. Cada plugin declara um **canal**: `api` | `browser` | `email`.
+A **local single-user** app (Python, FastAPI + HTMX) that runs the
+**discover → rank → adapt CV/cover letter → fill → submit** cycle for jobs, with human-in-the-loop.
+Architecture: **shared harness (`core/`) + thin per-platform plugins (`platforms/`)**,
+inspired by `automation_launcher`. Each plugin declares a **channel**: `api` | `browser` | `email`.
 
-→ Visão/"por quê": **`ideia.md`** · O "o quê": **`SPEC.md`** · O "como": **`docs/arquitetura.md`**
-· UI e prompts: **`docs/design.md`** · **Regras de currículo: `ATS.md` + `HUMANIZE.md` (críticos)**.
-
----
-
-## Sistema Karpathy (como trabalhar)
-
-Metodologia de desenvolvimento com IA inspirada em Andrej Karpathy. **Reduz os erros mais comuns
-de LLM. Enviesa para cautela sobre velocidade.**
-
-1. **Spec-first.** `SPEC.md`/`ideia.md` são a fonte da verdade. O código deriva da spec, não o
-   contrário. Mudou o comportamento? Atualize a spec **antes** ou junto.
-2. **Passos pequenos e incrementais.** Uma fatia vertical por vez, diffs pequenos e revisáveis.
-   Nunca um "big bang". Se escreveu muito de uma vez, quebre.
-3. **IA na coleira curta** ("keep the AI on a tight leash"). Gere pouco código por vez, leia
-   tudo antes de aceitar. Nada de grandes saídas não verificadas.
-4. **Autonomy slider.** Comece em baixa autonomia (revisar tudo), suba o nível só conforme a
-   confiança aumenta. Espelha o toggle manual→automático do próprio app.
-5. **Verificação concreta a cada passo.** Todo incremento tem um teste/observação real ("rodar e
-   ver funcionando") antes de seguir. Critério de sucesso explícito antes de codar.
-6. **Contexto enxuto.** Prompts e docs focados e navegáveis, não despejos longos.
-7. **Humano no comando das decisões irreversíveis.** Enviar candidatura, gastar tokens/saldo
-   2Captcha, tocar plataformas externas → exige aprovação explícita.
+→ Vision/"why": **`IDEA.md`** · The "what": **`SPEC.md`** · The "how": **`docs/ARCHITECTURE.md`**
+· UI and prompts: **`docs/DESIGN.md`** · **Resume rules: `ATS.md` + `HUMANIZE.md` (critical)**.
 
 ---
 
-## Regras invioláveis (OVERRIDE qualquer default)
+## Karpathy System (how to work)
 
-1. **Plugins não tocam infraestrutura.** Um plugin (`platforms/<id>/`) **nunca** abre browser
-   (`chromium.launch`/`sync_playwright`) nem cria sessão HTTP sozinho — recebe `ctx`/`session`
-   do harness. Comportamento compartilhado vai em `core/`.
-2. **Segredos fora do git.** `DEEPSEEK_API_KEY`, `CAPTCHA_API_KEY`, SMTP só no `.env` (gitignored).
-   **Nunca** commitar `.env`, `data/sessions/*`, nem `data/app.db`.
-3. **Nunca armazenar senhas de plataforma.** Só `storage_state` (cookies), via login manual.
-4. **Human-in-the-loop por padrão.** `apply` **para antes do envio final** em modo manual. Modo
-   automático é opt-in explícito.
-5. **Saída de IA sempre validada contra `schemas.py`** antes de uso. Nada de confiar no JSON cru.
-6. **Todo texto de candidatura segue `ATS.md` + `HUMANIZE.md`** (formato ATS + voz humana não
-   detectável como IA). Adaptar agressivamente à vaga e reframe honesto de autoestudo/projetos/labs
-   — **não fabricar vínculo empregatício inexistente**. Ao escrever/revisar qualquer texto de
-   candidatura, usar a skill **`escrever-aplicacao`**.
-7. **Gate antes de tocar um plugin:** `python scripts/check_contracts.py` precisa passar.
+An AI-assisted development methodology inspired by Andrej Karpathy. **Reduces the most common
+LLM errors. Biases toward caution over speed.**
+
+1. **Spec-first.** `SPEC.md`/`IDEA.md` are the source of truth. Code derives from the spec, not the
+   other way around. Changed the behavior? Update the spec **before** or alongside.
+2. **Small, incremental steps.** One vertical slice at a time, small reviewable diffs.
+   Never a "big bang". If you wrote too much at once, break it up.
+3. **AI on a tight leash** ("keep the AI on a tight leash"). Generate little code at a time, read
+   it all before accepting. No large unverified outputs.
+4. **Autonomy slider.** Start at low autonomy (review everything), raise the level only as
+   confidence increases. Mirrors the app's own manual→automatic toggle.
+5. **Concrete verification at every step.** Every increment has a real test/observation ("run it and
+   see it working") before moving on. Explicit success criterion before coding.
+6. **Lean context.** Focused, navigable prompts and docs, not long dumps.
+7. **Human in command of irreversible decisions.** Submitting an application, spending tokens/2Captcha
+   balance, touching external platforms → requires explicit approval.
 
 ---
 
-## Contrato do plugin (coração do projeto)
+## Inviolable rules (OVERRIDE any default)
 
-Cada plataforma = `app/platforms/<id>/` com:
-- **`manifest.py`** — declarativo: `id`, `name`, `channel`, `base_url`/endpoints, captcha
-  esperado, `build()` lazy. **Registrar no registry** `platforms/__init__.py` (imports estáticos).
-- **`discovery.py`** — `discover(keywords, ctx|session) -> list[JobPosting]` (ausente no canal `email`).
+1. **Plugins do not touch infrastructure.** A plugin (`platforms/<id>/`) **never** opens a browser
+   (`chromium.launch`/`sync_playwright`) nor creates an HTTP session on its own — it receives `ctx`/`session`
+   from the harness. Shared behavior goes in `core/`.
+2. **Secrets out of git.** `DEEPSEEK_API_KEY`, `CAPTCHA_API_KEY`, SMTP only in `.env` (gitignored).
+   **Never** commit `.env`, `data/sessions/*`, nor `data/app.db`.
+3. **Never store platform passwords.** Only `storage_state` (cookies), via manual login.
+4. **Human-in-the-loop by default.** `apply` **stops before the final submission** in manual mode. Automatic
+   mode is explicit opt-in.
+5. **AI output always validated against `schemas.py`** before use. Never trust the raw JSON.
+6. **All application text follows `ATS.md` + `HUMANIZE.md`** (ATS format + human voice not
+   detectable as AI). Adapt aggressively to the job and honestly reframe self-study/projects/labs
+   — **do not fabricate nonexistent employment**. When writing/reviewing any application
+   text, use the skill **`write-application`**.
+7. **Gate before touching a plugin:** `python scripts/check_contracts.py` must pass.
+
+---
+
+## Plugin contract (heart of the project)
+
+Each platform = `app/platforms/<id>/` with:
+- **`manifest.py`** — declarative: `id`, `name`, `channel`, `base_url`/endpoints, expected
+  captcha, lazy `build()`. **Register in the registry** `platforms/__init__.py` (static imports).
+- **`discovery.py`** — `discover(keywords, ctx|session) -> list[JobPosting]` (absent in the `email` channel).
 - **`apply.py`** — `apply(job, application, ctx|session, dry_run) -> ApplyResult`.
 
-Schemas normalizados (`JobPosting`, `ApplicationForm`, `FormField`, `ApplyResult`) em
-`app/core/schemas.py`. → Detalhe completo do contrato e dos canais: **`SPEC.md` §4** e
-**`docs/arquitetura.md`**.
+Normalized schemas (`JobPosting`, `ApplicationForm`, `FormField`, `ApplyResult`) in
+`app/core/schemas.py`. → Full detail of the contract and channels: **`SPEC.md` §4** and
+**`docs/ARCHITECTURE.md`**.
 
 ---
 
-## Comandos essenciais
+## Essential commands
 
-| Comando | Para quê |
+| Command | For what |
 |---|---|
 | `pip install -r requirements.txt && playwright install chromium` | Setup. |
-| `python scripts/login.py <plataforma>` | Login manual → salva sessão (`data/sessions/<id>.json`). |
-| `uvicorn app.main:app --reload` | Roda o dashboard (dev). |
-| `python scripts/apply_harness.py <id> --keywords "appsec" --dry-run` | Testa 1 plugin isolado (não envia). |
-| `python scripts/check_contracts.py` | Gate de contrato dos plugins (sem rede/DB). |
+| `python scripts/login.py <plataforma>` | Manual login → saves session (`data/sessions/<id>.json`). |
+| `uvicorn app.main:app --reload` | Runs the dashboard (dev). |
+| `python scripts/apply_harness.py <id> --keywords "appsec" --dry-run` | Tests 1 plugin in isolation (does not submit). |
+| `python scripts/check_contracts.py` | Plugin contract gate (no network/DB). |
 
 ---
 
 ## Stack
 
-Python · FastAPI · Jinja2 + HTMX (sem build JS) · SQLModel + SQLite · Playwright (CDP) ·
+Python · FastAPI · Jinja2 + HTMX (no JS build) · SQLModel + SQLite · Playwright (CDP) ·
 curl_cffi · PDF via Chromium (`page.pdf`) · DeepSeek (SDK `openai`, `base_url=https://api.deepseek.com`;
-`deepseek-reasoner` p/ ranking, `deepseek-chat` p/ geração) · 2Captcha.
+`deepseek-reasoner` for ranking, `deepseek-chat` for generation) · 2Captcha.
 
-## Prioridade de plataformas (por taxa de resposta / risco)
+## Platform priority (by response rate / risk)
 
-Gupy (API) → InHire (API) → Indeed (browser) → Catho (browser) → email direto → **LinkedIn por
-último** (anti-bot agressivo). Detalhe e dados em `ideia.md` / `SPEC.md`.
+Gupy (API) → InHire (API) → Indeed (browser) → Catho (browser) → direct email → **LinkedIn
+last** (aggressive anti-bot). Detail and data in `IDEA.md` / `SPEC.md`.
 
-## Adicionar plataforma / mexer no núcleo
+## Adding a platform / touching the core
 
-- **Plugin novo:** crie `platforms/<id>/` (3 arquivos), registre no registry, valide com
-  `check_contracts.py` + `apply_harness.py` em dry-run antes de qualquer envio real.
-- **Mudança no `core/`:** afeta todos os plugins — passo pequeno, verifique com o harness.
+- **New plugin:** create `platforms/<id>/` (3 files), register it in the registry, validate with
+  `check_contracts.py` + `apply_harness.py` in dry-run before any real submission.
+- **Change in `core/`:** affects all plugins — small step, verify with the harness.

@@ -1,4 +1,4 @@
-"""Ranking de vaga × perfil (DeepSeek chat + rubrica). Ver SPEC.md §5 e docs/design.md.
+"""Ranking de vaga × perfil (DeepSeek chat + rubrica). Ver SPEC.md §5 e docs/DESIGN.md.
 
 Pontua 0–100 a aderência da vaga a um candidato de SEGURANÇA OFENSIVA, por uma rubrica com pesos
 (domínio ofensivo > senioridade > modelo > skills). A qualidade vem da rubrica, não do reasoner:

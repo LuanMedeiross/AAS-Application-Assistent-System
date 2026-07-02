@@ -1,24 +1,24 @@
-# Arquitetura — Application Assistant
+# Architecture — Application Assistant
 
-> O "como". Decisões técnicas e estrutura. O "o quê" está em `SPEC.md`; o "por quê" em
-> `ideia.md`. **Em dúvida sobre uma área, leia a seção dela aqui antes de mexer.**
+> The "how". Technical decisions and structure. The "what" lives in `SPEC.md`; the "why" in
+> IDEA.md. **When in doubt about an area, read its section here before touching it.**
 
-## Princípio central: harness compartilhado + plugins finos
+## Core principle: shared harness + thin plugins
 
-Inspirado no `automation_launcher` (projeto do usuário): um **núcleo (harness)** cuida de tudo
-que é difícil e compartilhado — browser stealth, sessão, captcha, fila, circuit breaker,
-clientes HTTP/IA. Cada **plataforma é um plugin fino** que só implementa descoberta + parsing
-+ submit. O risco técnico fica concentrado e testado no núcleo; adicionar plataforma = escrever
-um plugin pequeno.
+Inspired by `automation_launcher` (the user's project): a **core (harness)** handles everything
+that is hard and shared — browser stealth, session, captcha, queue, circuit breaker,
+HTTP/AI clients. Each **platform is a thin plugin** that only implements discovery + parsing
++ submit. The technical risk is concentrated and tested in the core; adding a platform = writing
+a small plugin.
 
-Cada plugin declara um **canal**:
-- `api` — usa a API pública da plataforma (curl_cffi com TLS impersonation). Sem navegador, sem captcha. **Preferido.**
-- `browser` — Chromium stealth via CDP + sessão manual. Captcha sob bloqueio.
-- `email` — SMTP (candidatura por email direto).
+Each plugin declares a **channel**:
+- `api` — uses the platform's public API (curl_cffi with TLS impersonation). No browser, no captcha. **Preferred.**
+- `browser` — Chromium stealth via CDP + manual session. Captcha behind a lock.
+- `email` — SMTP (application by direct email).
 
-Isso espelha o `requests_mode` vs browser do `automation_launcher`.
+This mirrors `automation_launcher`'s `requests_mode` vs browser.
 
-## Componentes
+## Components
 
 ```
 ┌─────────────┐   ┌──────────────┐   ┌─────────────────────────┐
@@ -38,7 +38,7 @@ Isso espelha o `requests_mode` vs browser do `automation_launcher`.
                 └─────────────────┘   └────────────┘
 ```
 
-## Estrutura de pastas
+## Folder structure
 
 ```
 app/
@@ -82,46 +82,46 @@ data/                # app.db, sessions/, generated/ (PDFs)
 curriculum/          # FONTE do master_cv: curriculo.pdf (export LinkedIn) + curriculo.md (legível)
 ```
 
-> **`curriculum/`**: o `curriculo.md` é a versão estruturada/legível do CV (fiel ao
-> `curriculo.pdf`). É a base que popula `Profile.master_cv`. Atualizar `.md` e `.pdf` juntos.
+> **`curriculum/`**: `curriculo.md` is the structured/readable version of the CV (faithful to
+> `curriculo.pdf`). It is the base that populates `Profile.master_cv`. Update `.md` and `.pdf` together.
 
-## Fluxo de dados (ponta a ponta)
+## Data flow (end to end)
 
-1. **Discover** → `routes /discover` chama `discovery.discover()` de cada plugin habilitado →
-   grava `Job` (status `discovered`).
-2. **Rank** → `ranker.score()` → atualiza `Job.score`/`reason` (status `ranked`).
-3. **Tailor** → `tailor.generate()` lê descrição + Profile.master_cv → JSON CV/carta →
-   `pdf.render()` gera PDF (status `tailored`).
-4. **Prepare** → `apply.apply(dry_run=True)` monta payload/preenche form sem enviar →
-   `Application` em `pending_approval`.
-5. **Approve** → `apply.apply(dry_run=False)` envia → `Application.result=sent`, `Job.status=applied`,
+1. **Discover** → `routes /discover` calls each enabled plugin's `discovery.discover()` →
+   writes `Job` (status `discovered`).
+2. **Rank** → `ranker.score()` → updates `Job.score`/`reason` (status `ranked`).
+3. **Tailor** → `tailor.generate()` reads the description + Profile.master_cv → JSON resume/cover letter →
+   `pdf.render()` generates the PDF (status `tailored`).
+4. **Prepare** → `apply.apply(dry_run=True)` builds the payload/fills the form without submitting →
+   `Application` in `pending_approval`.
+5. **Approve** → `apply.apply(dry_run=False)` submits → `Application.result=sent`, `Job.status=applied`,
    `AuditLog`.
 
-## Decisões técnicas e trade-offs
+## Technical decisions and trade-offs
 
-- **API-first**: onde há API pública (Gupy, InHire), evitamos navegador → mais confiável, sem
-  captcha, mais rápido. Trade-off: depende da estabilidade da API não-documentada para alguns endpoints.
-- **Chromium único via CDP** (não 1 Playwright por thread): memória menor, contextos isolados.
-  Portado do `automation_launcher/backend/browser.py`.
-- **Stealth via `add_init_script`**: injeta antes do `goto`. Spoofa `navigator.webdriver`,
-  `languages`, WebGL, timezone. Reduz detecção sem prometer invisibilidade.
-- **Sessão manual (storage_state)**: nunca guardamos senha; usuário loga uma vez. Trade-off:
-  sessão expira e exige re-login ocasional.
-- **DeepSeek via SDK `openai`**: `base_url=https://api.deepseek.com`. `deepseek-reasoner` para
-  ranking (decisão), `deepseek-chat` para geração. Saída forçada a JSON e validada contra `schemas`.
-- **Circuit breaker**: N falhas/captcha seguidos → `stop=True` + sinal no dashboard. Não queima
-  sessão nem saldo 2Captcha em loop.
-- **Human-in-the-loop padrão**: `apply` para antes do envio final; modo automático é opt-in.
+- **API-first**: where there is a public API (Gupy, InHire), we avoid the browser → more reliable, no
+  captcha, faster. Trade-off: it depends on the stability of the undocumented API for some endpoints.
+- **Single Chromium via CDP** (not 1 Playwright per thread): lower memory, isolated contexts.
+  Ported from `automation_launcher/backend/browser.py`.
+- **Stealth via `add_init_script`**: injects before `goto`. Spoofs `navigator.webdriver`,
+  `languages`, WebGL, timezone. Reduces detection without promising invisibility.
+- **Manual session (storage_state)**: we never store a password; the user logs in once. Trade-off:
+  the session expires and requires occasional re-login.
+- **DeepSeek via the `openai` SDK**: `base_url=https://api.deepseek.com`. `deepseek-reasoner` for
+  ranking (the decision), `deepseek-chat` for generation. Output forced to JSON and validated against `schemas`.
+- **Circuit breaker**: N consecutive failures/captchas → `stop=True` + a signal on the dashboard. It does not burn
+  the session or 2Captcha balance in a loop.
+- **Human-in-the-loop by default**: `apply` stops before the final submission; automatic mode is opt-in.
 
-## Gestão de sessão e captcha
+## Session and captcha management
 
-- `scripts/login.py <plataforma>` abre Chromium headed; usuário loga; `session.py` salva
-  `data/sessions/<id>.json`. `PlatformSession` registra validade.
-- No canal `browser`, o contexto é criado com `storage_state=<id>.json` + stealth.
-- Se aparecer challenge (Cloudflare Turnstile / hCaptcha / reCAPTCHA v2), `apply` chama
-  `captcha.solve(...)` (2Captcha) e injeta o token. Falha de saldo → fatal + pausa.
+- `scripts/login.py <plataforma>` opens a headed Chromium; the user logs in; `session.py` saves
+  `data/sessions/<id>.json`. `PlatformSession` records its validity.
+- On the `browser` channel, the context is created with `storage_state=<id>.json` + stealth.
+- If a challenge appears (Cloudflare Turnstile / hCaptcha / reCAPTCHA v2), `apply` calls
+  `captcha.solve(...)` (2Captcha) and injects the token. Balance failure → fatal + pause.
 
-## Integração DeepSeek (referência)
+## DeepSeek integration (reference)
 
 ```python
 from openai import OpenAI
@@ -130,16 +130,16 @@ client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 # response_format={"type": "json_object"}; validar contra schemas antes de usar
 ```
 
-## O que portar do `automation_launcher` (referência de código)
+## What to port from `automation_launcher` (code reference)
 
-| Aqui | Origem |
+| Here | Origin |
 |---|---|
 | `core/browser.py` | `backend/browser.py` (ChromiumServer, CDP) |
 | `core/stealth.py` | `backend/utils.py` (`_STEALTH_SCRIPT`) |
 | `core/http_client.py` | `backend/http_client.py` (curl_cffi impersonate) |
 | `core/captcha.py` | `backend/captcha.py` (2Captcha) |
-| `core/runner.py` | `backend/automation.py` (filas, stop, circuit breaker) |
-| `scripts/apply_harness.py` | `scripts/agent_harness.py` (repo mockado, dry-run) |
-| `scripts/check_contracts.py` | `scripts/check_contracts.py` (validação por regex) |
+| `core/runner.py` | `backend/automation.py` (queues, stop, circuit breaker) |
+| `scripts/apply_harness.py` | `scripts/agent_harness.py` (mocked repo, dry-run) |
+| `scripts/check_contracts.py` | `scripts/check_contracts.py` (regex validation) |
 
-> Adaptar, não copiar cego: o domínio aqui é vaga/candidatura, não consulta processual.
+> Adapt, don't blindly copy: the domain here is job/application, not legal-case lookup.

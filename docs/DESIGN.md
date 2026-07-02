@@ -1,12 +1,12 @@
 # Design — Application Assistant
 
-> Design do dashboard e das prompts da IA. UI server-rendered (FastAPI + Jinja2 + HTMX),
-> sem build de JS. Sem emojis/símbolos na UI sem pedido — estado se comunica por cor/layout.
+> Design of the dashboard and the AI prompts. Server-rendered UI (FastAPI + Jinja2 + HTMX),
+> no JS build. No emojis/symbols in the UI unless requested — state is communicated through color/layout.
 
-## Telas
+## Screens
 
 ### 1. Dashboard (`/`)
-Resumo geral e ponto de partida.
+General overview and starting point.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ Application Assistant                         [Profile] [Audit]│
@@ -25,7 +25,7 @@ Resumo geral e ponto de partida.
 ```
 
 ### 2. Profile (`/profile`)
-Editar dados + importar do LinkedIn.
+Edit data + import from LinkedIn.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ Profile                                  [Importar do LinkedIn]│
@@ -40,11 +40,11 @@ Editar dados + importar do LinkedIn.
 │                                            [Salvar]           │
 └──────────────────────────────────────────────────────────────┘
 ```
-"Importar do LinkedIn" abre/usa a sessão manual, extrai dados e pré-preenche os campos para o
-usuário revisar (não salva automático sem revisão).
+"Import from LinkedIn" opens/uses the manual session, extracts the data, and pre-fills the fields for the
+user to review (it does not save automatically without review).
 
-### 3. Vagas ranqueadas (`/jobs`)
-Lista ordenada por score, com filtros.
+### 3. Ranked jobs (`/jobs`)
+List ordered by score, with filters.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ Vagas    [plataforma ▾] [status ▾] [score min __]             │
@@ -55,12 +55,12 @@ Lista ordenada por score, com filtros.
 │ 60  SOC Analyst — Delta      Catho   ranked     [Gerar CV]    │
 └──────────────────────────────────────────────────────────────┘
 ```
-Cada linha expande (HTMX) mostrando descrição, justificativa do score e requisitos ausentes.
+Each row expands (HTMX) to show the description, the score justification, and missing requirements.
 
-### 4. Preview CV/carta (`/jobs/{id}/preview`)
-Mostra o PDF gerado + carta, lado a lado com a descrição da vaga, antes de preparar.
+### 4. Resume/cover letter preview (`/jobs/{id}/preview`)
+Shows the generated PDF + cover letter, side by side with the job posting description, before preparing.
 
-### 5. Revisar candidatura (fila de aprovação)
+### 5. Review application (approval queue)
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ Revisar: Pentester — Acme (Gupy)                              │
@@ -74,47 +74,47 @@ Mostra o PDF gerado + carta, lado a lado com a descrição da vaga, antes de pre
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## Fluxo de navegação (HTMX)
+## Navigation flow (HTMX)
 
-- Ações (`Buscar`, `Gerar CV`, `Preparar`, `Aprovar`) são POSTs HTMX que **trocam fragmentos**
-  (a linha da vaga, o card da fila) sem recarregar a página.
-- Operações longas (discover/tailor) mostram estado `processando` no próprio fragmento e
-  atualizam quando terminam (polling HTMX ou resposta direta).
-- Estado por **cor/tipografia**: `ok`/`enviada` (neutro-positivo), `expirada`/`erro` (destaque),
-  `processando` (esmaecido). Sem ícones decorativos.
+- Actions (`Buscar`, `Gerar CV`, `Preparar`, `Aprovar`) are HTMX POSTs that **swap fragments**
+  (the job row, the queue card) without reloading the page.
+- Long operations (discover/tailor) show a `processando` state in the fragment itself and
+  update when they finish (HTMX polling or a direct response).
+- State communicated through **color/typography**: `ok`/`enviada` (neutral-positive), `expirada`/`erro` (highlighted),
+  `processando` (dimmed). No decorative icons.
 
-## Design das prompts da IA
+## AI prompt design
 
-Princípios: instrução curta, **saída JSON estrita**, contexto mínimo necessário, idioma
-controlado. Sempre validar contra `schemas.py`.
+Principles: short instruction, **strict JSON output**, minimum necessary context, controlled
+language. Always validate against `schemas.py`.
 
 ### Ranker (`deepseek-reasoner`)
-- **Entrada:** `target_roles` + `seniority` + resumo do Profile (skills/experiência) +
-  título/descrição da vaga.
-- **Tarefa:** pontuar 0–100 a aderência, justificar em 1–2 frases, listar requisitos ausentes.
-  **Penalizar descompasso de senioridade** (ex.: vaga sênior para perfil entry).
-- **Saída:** `{ score, reason, missing[] }`. Sem texto fora do JSON.
+- **Input:** `target_roles` + `seniority` + Profile summary (skills/experience) +
+  job title/description.
+- **Task:** score the fit from 0–100, justify in 1–2 sentences, list missing requirements.
+  **Penalize seniority mismatch** (e.g., a senior job for an entry-level profile).
+- **Output:** `{ score, reason, missing[] }`. No text outside the JSON.
 
 ### Tailor (`deepseek-chat`)
-- **Entrada:** `Profile.master_cv` + descrição da vaga + regras do `ATS.md` + `HUMANIZE.md`.
-- **Voz humana (HUMANIZE.md):** ritmo variado (frases curtas + longas), detalhe específico real
-  por parágrafo, micro-episódio na carta, zero vocabulário/clichê de IA, carta de 200–300 palavras.
-- **Tarefa:** (1) detectar idioma da vaga; (2) gerar CV **no formato ATS** (ver `ATS.md`),
-  adaptado agressivamente à descrição — keywords espelhadas literalmente, skills matrix, bullets
-  com métrica; (3) escrever carta curta no mesmo idioma.
-- **Amplificar competências (não fabricar fatos):** destaca ao máximo skills/expertise reais que
-  a vaga pede e enfatiza autoestudo/projetos/home labs como experiência concreta; **não fabrica
-  vínculo empregatício, senioridade nem certificação** (ver `ATS.md` — "Pode vs. Não pode").
-  Lacuna de experiência → seção Projetos/Labs forte.
-- **Saída:** `{ language, cv{...}, cover_letter }`. Validar contra `schemas.py` + checklist do `ATS.md`.
+- **Input:** `Profile.master_cv` + job description + the rules in `ATS.md` + `HUMANIZE.md`.
+- **Human voice (HUMANIZE.md):** varied rhythm (short + long sentences), a real specific detail
+  per paragraph, a micro-episode in the cover letter, zero AI vocabulary/clichés, a 200–300 word cover letter.
+- **Task:** (1) detect the job's language; (2) generate the resume **in ATS format** (see `ATS.md`),
+  aggressively tailored to the description — keywords mirrored literally, skills matrix, bullets
+  with metrics; (3) write a short cover letter in the same language.
+- **Amplify competencies (do not fabricate facts):** highlight to the fullest the real skills/expertise the
+  job asks for and emphasize self-study/projects/home labs as concrete experience; **do not fabricate
+  an employment relationship, seniority, or certification** (see `ATS.md` — "Can vs. Cannot").
+  Experience gap → a strong Projects/Labs section.
+- **Output:** `{ language, cv{...}, cover_letter }`. Validate against `schemas.py` + the `ATS.md` checklist.
 
-### Form agent (`deepseek-chat`, canal browser)
-- **Entrada:** `FormField[]` (label/tipo/opções) + Profile + dados da candidatura.
-- **Tarefa:** mapear cada campo para um valor; marcar como `unknown` o que não souber responder
-  com segurança (em vez de chutar).
-- **Saída:** `{ fields[], unknown[] }`. Campos `unknown` são destacados para o usuário no review.
+### Form agent (`deepseek-chat`, browser channel)
+- **Input:** `FormField[]` (label/type/options) + Profile + application data.
+- **Task:** map each field to a value; mark as `unknown` anything it cannot answer
+  confidently (instead of guessing).
+- **Output:** `{ fields[], unknown[] }`. `unknown` fields are highlighted for the user during review.
 
-## Convenção de erros na UI
-- Falha de sessão → banner "sessão expirada, rode `login.py <plataforma>`".
-- Circuit breaker disparado → plugin marcado como `pausado` com motivo.
-- Campo `unknown` do form agent → bloqueia "Aprovar e enviar" até o usuário preencher.
+## UI error convention
+- Session failure → banner "session expired, run `login.py <plataforma>`".
+- Circuit breaker tripped → plugin marked as `pausado` with a reason.
+- `unknown` field from the form agent → blocks "Aprovar e enviar" until the user fills it in.
