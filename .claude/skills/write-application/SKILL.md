@@ -29,6 +29,11 @@ detail; the essentials are here.
 - **Cover letter = 200–300 words**, Problem → Action → Impact structure, with 1 real micro-episode
   (decision/lesson) and a closing with a metric + 1 specific question about the job/company.
 - **Metric instead of adjective:** "reduced by 60%" > "improved a lot".
+- **Don't reference the employer at all:** in the prose, don't mention the employer in any form
+  (not the name, not "at a company" / "in my current job"); state the experience directly ("I run
+  internal pentests…", "I've found…"). Only mention it if the question explicitly asks.
+- **Mirror the job as interest:** reflect the posting's areas/tech as the person's genuine interest
+  and wish to grow (even areas they haven't explored yet), honestly, never as fake experience.
 
 ## Ban (AI tells)
 - Words: delve/mergulhar, leverage/alavancar, robust/robusto, seamless, pivotal, foster,
@@ -37,12 +42,15 @@ detail; the essentials are here.
   "results-driven", "passionate about", "excited about the opportunity to contribute".
 - Structures: rule of three everywhere, "not only X but also Y", stacked participles
   (…improving, fostering, highlighting), "Furthermore/Moreover/Additionally" transitions.
-- Format: overuse of em dashes, decorative bold, Title Case, identical bullets.
+- Punctuation: never use the em dash (—) or en dash (–) as punctuation or for an aside; it is an
+  instant AI tell. Use a comma, period, or parentheses. Also avoid decorative bold, Title Case,
+  identical bullets.
 
 ## Before delivering — quick checklist
 - [ ] Zero banned words/clichés.
 - [ ] Sentences vary in length; at least 1 specific real detail per paragraph.
 - [ ] Cover letter has a real micro-episode + metric + question about the job; 200–300 words.
+- [ ] No employer mentioned at all in the prose (name or generic), unless asked; no em/en dashes.
 - [ ] Job keywords mirrored (ATS) without keyword stuffing.
 - [ ] Language = the job's language.
 - [ ] Final test: "would a friend recognize their voice here?" If it sounds like a model, rewrite.

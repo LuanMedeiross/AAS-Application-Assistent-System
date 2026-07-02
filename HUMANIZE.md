@@ -44,8 +44,10 @@ constante evolução", "fast-paced".
 - **Formal transitions**: "Além disso", "Ademais", "Outrossim", "Furthermore", "Moreover".
 - Paragraphs all the same length; grammar too perfect, without any personal touch.
 
-**Punctuation/format:** don't overuse the em dash (—); don't use decorative bold in every
-sentence; don't use Title Case in headings; don't stuff the text with identical bullets.
+**Punctuation/format:** **never use the em dash (—) or en dash (–) as punctuation or for an
+aside.** It is an instant AI tell; rewrite with a comma, a period, or parentheses. (A dash inside a
+numeric range like "200–300" is fine.) Don't use decorative bold in every sentence; don't use Title
+Case in headings; don't stuff the text with identical bullets.
 
 ## What TO write (the human voice)
 
@@ -64,6 +66,10 @@ sentence; don't use Title Case in headings; don't stuff the text with identical 
    improved performance".
 7. **Opening hook** that cites the job + a real project/achievement of yours — no "Venho por meio
    desta".
+8. **Mirror the job as genuine interest.** Pick up the areas, technologies, and responsibilities
+   from the job description and frame them as the candidate's real interest and desire to grow
+   (including areas they haven't explored much yet), always honestly as motivation to learn, never
+   as experience they lack. It proves they actually read the posting.
 
 ## Cover-letter-specific rules
 
@@ -73,6 +79,12 @@ sentence; don't use Title Case in headings; don't stuff the text with identical 
   the job/company** (shows you actually read it).
 - **Connect it to the real:** every generic claim must become a scene + a number (see `ATS.md` —
   amplify real competence, never fabricate facts).
+- **Don't reference the employer at all.** In narrative text (cover letter, form answers), do NOT
+  mention the employer in any form (not the name, not a generic reference like "at a tech company"
+  or "in my current job"). State the experience directly, in first person and by what was done:
+  "I run internal pentests…", "I've found critical flaws…". Only mention an employer if the
+  question explicitly asks. The structured CV keeps company names as usual; this rule is about the
+  prose.
 - **Language = job language** (the tailor's rule). Apply these principles in the right language.
 
 ## Checklist the tailor applies to EACH generated text
@@ -83,7 +95,8 @@ sentence; don't use Title Case in headings; don't stuff the text with identical 
 - [ ] 1 concrete micro-episode in the letter (decision/lesson), based on a real fact.
 - [ ] No repetitive rule of three, no "not just… but also" parallelism, no stacked participles.
 - [ ] Cliché-free opening; closing with a metric + a specific question about the job.
-- [ ] Letter between 200–300 words; em dash used sparingly; no decorative bold.
+- [ ] No employer mentioned at all in narrative text (name or generic), unless the question asks.
+- [ ] Letter between 200–300 words; **zero em/en dashes (—, –)** as punctuation; no decorative bold.
 - [ ] Sounds like the person speaking, not like a model. (Test: "would a friend recognize my voice?")
 
 ## Relationship with `ATS.md`

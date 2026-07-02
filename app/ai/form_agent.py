@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from ..config import settings
 from ..core.form_extract import FormQuestion
 from .deepseek import chat_json
+from .humanize import strip_ai_dashes
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +79,15 @@ empresa e conexão com o PERFIL.
 - Voz humana: frases de tamanhos variados, um detalhe específico real. PROIBIDO clichê de IA \
 ("venho por meio desta", "apaixonado por", "profissional orientado a detalhes", "alavancar", \
 "robusto", "em constante evolução", "não só X mas também Y").
+- PONTUAÇÃO: NUNCA use travessão (o caractere "—" ou "–") nem hífen como pausa/aparte: é sinal \
+imediato de IA. Use vírgula, ponto ou parênteses.
+- EXPERIÊNCIA SEM EMPREGADOR: NÃO mencione o empregador de forma alguma (nem o nome, nem referência \
+genérica como "em uma empresa", "no meu trabalho atual", "onde atuo"). Fale a experiência DIRETO, em \
+1ª pessoa e pelo que foi feito (ex.: "Faço testes de penetração...", "Já encontrei falhas \
+críticas..."). Só cite um empregador se a pergunta pedir isso.
+- INTERESSE PELA VAGA: reflita as áreas/tecnologias da VAGA como interesse real e vontade de \
+aprender do candidato, inclusive nas que ele ainda explorou pouco (com honestidade, como motivação \
+para crescer, nunca como experiência que ele não tem).
 
 SKILLS (tipo "skills"): escolha as MELHORES até `max_escolhas` das `opcoes` para ESTA vaga. \
 `value` = as escolhidas separadas por "; " (ex.: "Pentest (teste de penetração); Segurança \
@@ -178,6 +188,9 @@ def _sanitize(plan: FormPlan, questions: list[FormQuestion]) -> FormPlan:
             if not picked:
                 continue
             ans.value = "; ".join(picked)
+        # Deterministic guard: the model keeps emitting em dashes despite the prompt rule.
+        if q.kind in ("text", "long_text"):
+            ans.value = strip_ai_dashes(ans.value)
         kept.append(ans)
 
     answered = {a.key for a in kept}

@@ -17,6 +17,7 @@ import logging
 from ..config import settings
 from ..core.schemas import TailorResult
 from .deepseek import chat_json
+from .humanize import strip_ai_dashes
 
 log = logging.getLogger(__name__)
 
@@ -47,11 +48,24 @@ número) em cada bloco.
 "apaixonado por", "animado com a oportunidade"; vocabulário de IA: delve/mergulhar, alavancar, \
 robusto, seamless, pivotal, fomentar, cenário, "em constante evolução"; regra de três repetitiva; \
 "não só X mas também Y"; particípios empilhados; transições "Além disso/Ademais".
+- PONTUAÇÃO (crítico): NUNCA use travessão (o caractere "—" ou "–") nem hífen como pausa/aparte: \
+é um sinal IMEDIATO de texto de IA. Reescreva com vírgula, ponto ou parênteses.
+- EXPERIÊNCIA SEM EMPREGADOR: na CARTA, NÃO mencione o empregador de forma alguma: nem o nome, nem \
+referência genérica ("em uma empresa de tecnologia", "no meu trabalho atual", "onde atuo"). Fale a \
+experiência DIRETO, em 1ª pessoa e pelo que foi feito (ex.: "Faço testes de penetração internos...", \
+"Já encontrei falhas críticas...", "Produzo relatórios técnicos..."). Só cite um empregador se a \
+descrição da vaga pedir explicitamente. (No CV estruturado, o campo `company` segue normal.)
 
 ANTI-FABRICAÇÃO (crítico):
 - Use SOMENTE fatos do PERFIL. Pode amplificar/detalhar competências e projetos REAIS para casar \
 com a vaga. NUNCA invente emprego, empresa, cargo, datas, senioridade ou certificação que não \
 estejam no perfil.
+
+INTERESSE PELA VAGA (manter este padrão):
+- Identifique as áreas, tecnologias e responsabilidades da DESCRIÇÃO da vaga e reflita-as como \
+interesse REAL do candidato e vontade de se aprofundar, inclusive nas que ele ainda explorou pouco \
+(enquadradas com honestidade como motivação para crescer, NUNCA como experiência que ele não tem). \
+Isso mostra que ele leu a vaga e conecta o perfil a ela.
 
 Responda SOMENTE JSON no formato:
 {"language":"pt|en|...",
@@ -76,4 +90,19 @@ def generate(master_cv: dict, job: dict) -> TailorResult:
         },
     }
     user = json.dumps(payload, ensure_ascii=False)
-    return chat_json(_SYSTEM, user, model=settings.model_generate, schema=TailorResult, temperature=0.5)
+    result = chat_json(_SYSTEM, user, model=settings.model_generate, schema=TailorResult,
+                       temperature=0.5)
+    return _clean(result)
+
+
+def _clean(result: TailorResult) -> TailorResult:
+    """Deterministically strip AI dashes from every prose field (the prompt rule alone leaks)."""
+    result.cover_letter = strip_ai_dashes(result.cover_letter)
+    cv = result.cv
+    cv.summary = strip_ai_dashes(cv.summary)
+    cv.achievements = [strip_ai_dashes(x) for x in cv.achievements]
+    for block in (*cv.experiences, *cv.projects):
+        bullets = block.get("bullets")
+        if isinstance(bullets, list):
+            block["bullets"] = [strip_ai_dashes(b) for b in bullets]
+    return result

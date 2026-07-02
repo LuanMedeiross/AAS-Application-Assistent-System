@@ -242,9 +242,9 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                 status, value, confidence = "unknown", "", ""
             else:
                 status, value, confidence = "skipped", "", ""
-            qa.append({"step": scope_label, "question": q.prompt, "kind": q.kind,
-                       "required": q.required, "answer": value, "confidence": confidence,
-                       "status": status})
+            qa.append({"step": scope_label, "key": q.key, "question": q.prompt, "kind": q.kind,
+                       "required": q.required, "options": q.options, "max_select": q.max_select,
+                       "answer": value, "confidence": confidence, "status": status})
         return plan.unknown, failed
 
     page.goto(job.url, wait_until="domcontentloaded")
