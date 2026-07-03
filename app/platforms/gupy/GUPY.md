@@ -142,11 +142,12 @@ modal overlays the form behind it; it must come before data/company).
   │   modal        → "Personalizar candidatura" (#dialog-...)           ─┘        │
   │                                                                               │
   │   done         → RETURN already_applied ✅ (end)                             │
+  │   not_advanced → RETURN not_advanced 🚫 (end) — sent, eliminated by a         │
+  │                  knockout question ("Você não avançou"); NOT an error         │
   │                                                                               │
   │   personalize  → AI: "Apresente-se" text + picks ≤3 skills                    │
   │                  → "Finalizar candidatura" ⚠️  SUBMISSION                     │
-  │                  → _finalized_ok()?  ── yes → RETURN sent ✅ (end)            │
-  │                                      └─ no  → RETURN error (retryable)         │
+  │                  → _finalize_outcome(): sent ✅ | not_advanced 🚫 | None→error │
   │                                                                               │
   │   unknown[]/failure ≠ empty at the company step → RETURN needs_review (pause) │
   └───────────────────────────────────────────────────────────────────────────────┘
@@ -221,8 +222,19 @@ FAQ), editable at `/profile`.
   `"candidatura finalizada"`/"acompanhar candidatura" for ~20s); if it doesn't confirm → `error` (do
   NOT mark as sent, leave it retryable). Diagnosis: running **headed (1 browser)** the flow finalizes
   correctly; the problem shows up **headless/concurrent**.
+- **🚫 "Você não avançou nesse processo" (eliminated ≠ error):** if a **knockout/eliminatory
+  question** is answered in a disqualifying way, clicking "Finalizar" takes you to a
+  "Você não avançou nesse processo" screen instead of "Candidatura finalizada!". **The application
+  WAS submitted** (it shows up under the candidate's finished applications) — the candidate was just
+  auto-screened-out. This is a **valid terminal state, NOT an error**. Handling: `_finalize_outcome()`
+  and `_detect_step` match `_NOT_ADVANCED_MARKERS` (`"não avançou"`) **before** the success markers
+  (the screen also has an "Acompanhar candidatura" button) → outcome **`not_advanced`** → DB
+  `result="not_advanced"`, `submitted_at` set, `status="applied"`. Before this fix it fell into the
+  `_finalized_ok` timeout → `error` (a **false negative**). Answering a knockout question wrong is
+  expected sometimes and is fine — we just record it honestly.
 - **Re-run on an already-finalized job:** `_detect_step` returns `done` (via `_DONE_MARKERS` in the
-  text) → outcome `already_applied` (marks as sent, doesn't reprocess).
+  text) → outcome `already_applied` (marks as sent, doesn't reprocess). A `not_advanced` job is also
+  guarded in `services.apply_application` (`result in ("sent","not_advanced")` → no re-open).
 - **⚠️ AUTO-SAVED and DISABLED field (idempotency):** Gupy saves each answer and **disables the
   already-answered field**. On a re-run, `.fill()` on a `<textarea disabled>4000</textarea>` **hangs
   for 30s** and turns into `failed` → a false `needs_review`. **Rule** (`core/form_fill.apply_answers`):

@@ -159,9 +159,9 @@ def apply_application(
     # Chromium à toa). `result == "sent"` só é gravado após confirmação real da Gupy (_finalized_ok
     # no apply.py; falso positivo foi eliminado na saga A–G). O caso inverso — DB diz não-enviada
     # mas a plataforma já concluiu — é coberto pelo plugin, que retorna 'already_applied' e corrige.
-    if app_row.result == "sent":
+    if app_row.result in ("sent", "not_advanced"):
         return {"outcome": "already_applied",
-                "message": "Candidatura já enviada anteriormente (não reabri o navegador)."}
+                "message": "Candidatura já finalizada anteriormente (não reabri o navegador)."}
     if not has_session(job.platform):
         return {"outcome": "error",
                 "message": f"Sem sessão '{job.platform}'. Rode: python scripts/login.py {job.platform}"}
@@ -213,6 +213,12 @@ def apply_application(
         outcome = result.get("outcome")
         if outcome in ("sent", "already_applied"):
             app_row.result, app_row.submitted_at, job.status = "sent", datetime.utcnow(), "applied"
+        elif outcome == "not_advanced":
+            # enviada, mas reprovada em pergunta eliminatória: É um envio (não erro) → registra
+            # submitted_at + status applied, com result distinto p/ o funil enxergar a eliminação.
+            app_row.result, app_row.submitted_at, job.status = \
+                "not_advanced", datetime.utcnow(), "applied"
+            app_row.error = ""
         elif outcome == "needs_review":
             job.status = "pending_approval"
         elif outcome == "dry_run":

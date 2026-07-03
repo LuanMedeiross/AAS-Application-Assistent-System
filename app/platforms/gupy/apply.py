@@ -126,22 +126,32 @@ def _text_has(page, needles) -> bool:
 _DONE_MARKERS = ("candidatura finalizada", "sua candidatura foi", "candidatura enviada",
                  "já se candidatou", "já candidatou", "acompanhar candidatura")
 
+# Tela de ELIMINAÇÃO: a candidatura FOI enviada, mas o candidato não passou num filtro
+# eliminatório da empresa ("Você não avançou nesse processo"). É um estado TERMINAL VÁLIDO —
+# NÃO é erro do nosso fluxo. Precede _DONE_MARKERS (a tela de "não avançou" também traz o botão
+# "Acompanhar candidatura", então testamos eliminação ANTES de sucesso genérico).
+_NOT_ADVANCED_MARKERS = ("não avançou", "nao avancou")
 
-def _finalized_ok(page, timeout_ms: int = 20000) -> bool:
-    """Espera a CONFIRMAÇÃO da Gupy ('Candidatura finalizada!' / 'Acompanhar candidatura').
-    Só com isso reportamos 'sent' — evita FALSO POSITIVO quando o submit não completa (headless/
-    concorrência) e o navegador fecharia antes do envio terminar."""
+
+def _finalize_outcome(page, timeout_ms: int = 20000) -> str | None:
+    """Espera o desfecho da Gupy após clicar 'Finalizar candidatura' e o classifica:
+      - 'sent'         → confirmação de envio ('Candidatura finalizada!' / 'Acompanhar candidatura');
+      - 'not_advanced' → enviada, mas reprovada em pergunta eliminatória ('Você não avançou');
+      - None           → nada apareceu no tempo (envio pode ter ficado INCOMPLETO).
+    Verificar aqui evita tanto o FALSO POSITIVO (reportar 'sent' antes do submit completar) quanto
+    o FALSO NEGATIVO (tratar 'não avançou' — que É um envio — como erro)."""
     try:
         page.wait_for_function(
             "() => { const t=(document.body.innerText||'').toLowerCase();"
             " return t.includes('candidatura finalizada') || t.includes('sua candidatura foi')"
-            " || t.includes('candidatura enviada')"
+            " || t.includes('candidatura enviada') || t.includes('não avançou')"
+            " || t.includes('nao avancou')"
             " || [...document.querySelectorAll('button,a')].some(b => /acompanhar candidatura/i.test(b.innerText||'')); }",
             timeout=timeout_ms,
         )
-        return True
     except Exception:  # noqa: BLE001
-        return False
+        return None
+    return "not_advanced" if _text_has(page, _NOT_ADVANCED_MARKERS) else "sent"
 
 
 # ---------------------------------------------------------------- detecção de etapa
@@ -160,6 +170,10 @@ _DADOS_RADIOS = ('input[name="radioGroupIsIndicatedTitle"], '
 def _detect_step(page) -> str:
     if _present(page, _APPLY_LINK):
         return "start"
+    # eliminada por pergunta eliminatória ('Você não avançou') — enviada mas reprovada (terminal).
+    # ANTES de 'done': a tela de "não avançou" também traz "Acompanhar candidatura".
+    if _text_has(page, _NOT_ADVANCED_MARKERS):
+        return "not_advanced"
     # candidatura já finalizada (re-run numa vaga já enviada) — antes de tudo, sem apply-link
     if _text_has(page, _DONE_MARKERS):
         return "done"
@@ -233,6 +247,12 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
         if kind == "done":
             return {"outcome": "already_applied", "filled": filled, "unknown": all_unknown, "qa": qa,
                     "message": "candidatura já estava finalizada."}
+
+        if kind == "not_advanced":
+            # enviada, mas reprovada num filtro eliminatório — terminal e VÁLIDO (não é erro nosso)
+            return {"outcome": "not_advanced", "filled": filled, "unknown": all_unknown, "qa": qa,
+                    "message": "candidatura enviada, mas você não avançou (reprovado em pergunta "
+                               "eliminatória da empresa)."}
 
         if kind == "modal":
             # modal "Personalizar candidatura" (após dados sem perguntas OU após perguntas da empresa)
@@ -321,9 +341,14 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                         "message": "não achei 'Finalizar candidatura'."}
             # ⚠️ NÃO reportar 'sent' só por clicar — VERIFICAR a confirmação da Gupy. Sob headless/
             # concorrência o submit pode não completar antes de fechar o navegador (falso positivo).
-            if _finalized_ok(page):
+            final = _finalize_outcome(page)
+            if final == "sent":
                 return {"outcome": "sent", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": "candidatura finalizada (confirmado pela Gupy)."}
+            if final == "not_advanced":
+                return {"outcome": "not_advanced", "filled": filled, "unknown": all_unknown, "qa": qa,
+                        "message": "candidatura enviada, mas você não avançou (reprovado em pergunta "
+                                   "eliminatória da empresa)."}
             return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
                     "message": "cliquei 'Finalizar' mas a Gupy NÃO confirmou o envio — "
                                "candidatura pode ter ficado INCOMPLETA (não marquei como enviada)."}

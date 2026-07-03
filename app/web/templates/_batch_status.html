@@ -13,7 +13,7 @@
     {% for r in rows %}
       {% set icon = {'queued':'•','running':'⏳','failed':'❌'}.get(r.state)
            or {'sent':'✅','already_applied':'✅','dry_run':'🟡','needs_review':'⛔',
-                'in_progress':'⏳','error':'❌'}.get(r.outcome, '✅') %}
+                'in_progress':'⏳','error':'❌','not_advanced':'🚫'}.get(r.outcome, '✅') %}
       <div class="hint" style="font-size:12px">
         {{ icon }} [{{ r.job_id }}] {{ r.title[:44] }} — {{ r.outcome or r.state }}{% if r.message %}: {{ r.message }}{% endif %}
       </div>
