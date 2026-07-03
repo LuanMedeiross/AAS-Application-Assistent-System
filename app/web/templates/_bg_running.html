@@ -1,0 +1,6 @@
+<div id="joblist-status" hx-get="/jobs/bg-status?task={{ task }}"
+     hx-trigger="every 2s" hx-swap="outerHTML">
+  <div class="panel">
+    <div class="hint">{{ label }}</div>
+  </div>
+</div>

@@ -46,6 +46,8 @@ app/
   config.py          # lê .env (LLM_API_KEY, CAPTCHA_API_KEY, SMTP_*)
   db.py              # engine SQLite + sessão SQLModel
   models.py          # Profile, Job, Application, PlatformSession, AuditLog
+  applyqueue.py      # fila de candidatura em lote (ThreadPool, até 5 navegadores) + status p/ polling
+  bgtasks.py         # tarefas longas single-shot (busca+ranqueio, CV em lote) fora da request HTTP
 
   core/              # HARNESS — não muda por plataforma
     browser.py       # ChromiumServer: 1 processo via CDP, connect_over_cdp, contextos isolados

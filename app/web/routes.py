@@ -10,13 +10,35 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
-from .. import applyqueue
+from .. import applyqueue, bgtasks
 from ..config import settings
 from ..core import audit
-from ..db import get_session
+from ..db import engine, get_session
 from ..models import Application, Job
 from ..services import apply_application, batch_tailor, discover_and_rank, tailor_application
 from .repo import get_or_create_profile, jobs_by_score
+
+# Long UI operations run in the background (bgtasks) so the request never blocks for minutes.
+# Labels shown by the polling fragment while each task runs.
+_BG_LABELS = {
+    "search": "⏳ Descobrindo + ranqueando vagas… (pode levar alguns minutos)",
+    "tailor": "⏳ Gerando CVs em lote… (uma chamada de IA por vaga)",
+}
+
+
+def _run_search(keywords: str) -> dict:
+    """Background body of /jobs/search — opens its own Session (worker thread)."""
+    with Session(engine) as s:
+        profile = get_or_create_profile(s)
+        kws = [k.strip() for k in keywords.split(",") if k.strip()] \
+            or profile.target_roles or ["segurança da informação"]
+        return discover_and_rank(s, "gupy", kws, profile)
+
+
+def _run_tailor(min_score: int) -> dict:
+    """Background body of /jobs/tailor-all — opens its own Session (worker thread)."""
+    with Session(engine) as s:
+        return batch_tailor(s, min_score)
 
 
 def _apply_module(platform: str):
@@ -124,32 +146,39 @@ def jobs_page(request: Request, session: Session = Depends(get_session)) -> HTML
 
 
 @router.post("/jobs/search", response_class=HTMLResponse)
-def jobs_search(request: Request, keywords: str = Form(""),
-                session: Session = Depends(get_session)) -> HTMLResponse:
-    """Descobre + ranqueia vagas (Gupy) via serviço — aposenta o scripts/discover_rank.py.
-    Devolve a lista atualizada (HTMX). Síncrono: pode levar alguns minutos na 1ª busca."""
-    profile = get_or_create_profile(session)
-    kws = [k.strip() for k in keywords.split(",") if k.strip()] or profile.target_roles \
-        or ["segurança da informação"]
-    ctx = {"allow_real": settings.allow_real_submit}
-    try:
-        ctx["search_stats"] = discover_and_rank(session, "gupy", kws, profile)
-    except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
-        ctx["search_error"] = str(exc)
-    ctx["jobs"] = jobs_by_score(session)
-    ctx["apps"] = {a.job_id: a for a in session.exec(select(Application)).all()}
-    return templates.TemplateResponse(request, "_job_list.html", ctx)
+def jobs_search(request: Request, keywords: str = Form("")) -> HTMLResponse:
+    """Dispara descoberta + ranqueio em BACKGROUND (não trava a request) e devolve um fragmento
+    que faz polling do progresso. Reusa o padrão da fila de candidatura (bgtasks)."""
+    bgtasks.start("search", lambda: _run_search(keywords))
+    return templates.TemplateResponse(
+        request, "_bg_running.html", {"task": "search", "label": _BG_LABELS["search"]})
 
 
 @router.post("/jobs/tailor-all", response_class=HTMLResponse)
-def jobs_tailor_all(request: Request, min_score: int = Form(0),
-                    session: Session = Depends(get_session)) -> HTMLResponse:
-    """Gera CV em lote para vagas com score >= min_score ainda sem CV. Devolve a lista atualizada."""
-    ctx = {"allow_real": settings.allow_real_submit}
-    try:
-        ctx["batch_stats"] = batch_tailor(session, min_score)
-    except Exception as exc:  # noqa: BLE001
-        ctx["search_error"] = str(exc)
+def jobs_tailor_all(request: Request, min_score: int = Form(0)) -> HTMLResponse:
+    """Dispara a geração de CV em lote em BACKGROUND e devolve o fragmento de polling.
+    Antes travava a request por minutos (uma chamada de IA por vaga)."""
+    bgtasks.start("tailor", lambda: _run_tailor(min_score))
+    return templates.TemplateResponse(
+        request, "_bg_running.html", {"task": "tailor", "label": _BG_LABELS["tailor"]})
+
+
+@router.get("/jobs/bg-status", response_class=HTMLResponse)
+def jobs_bg_status(request: Request, task: str,
+                   session: Session = Depends(get_session)) -> HTMLResponse:
+    """Polling de uma tarefa longa (search|tailor). Enquanto ativa, devolve o mesmo fragmento
+    (o poll continua); ao terminar, devolve a lista de vagas com as estatísticas da tarefa —
+    substituindo o spinner (hx-swap=outerHTML) e encerrando o polling."""
+    st = bgtasks.get(task)
+    if st and st["state"] in bgtasks.ACTIVE:
+        return templates.TemplateResponse(
+            request, "_bg_running.html",
+            {"task": task, "label": _BG_LABELS.get(task, "⏳ processando…")})
+    ctx: dict = {"allow_real": settings.allow_real_submit}
+    if st and st["state"] == "failed":
+        ctx["search_error"] = st["message"]
+    elif st and st["state"] == "done":
+        ctx["search_stats" if task == "search" else "batch_stats"] = st.get("result") or {}
     ctx["jobs"] = jobs_by_score(session)
     ctx["apps"] = {a.job_id: a for a in session.exec(select(Application)).all()}
     return templates.TemplateResponse(request, "_job_list.html", ctx)
