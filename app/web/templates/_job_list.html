@@ -1,42 +1,42 @@
-<div class="panel">
-  <div class="hint">
-    {{ jobs|length }} vaga(s). Ordenadas por score (aderência ao seu perfil).
-    {% if search_stats %}
-      <span class="ok">Busca: {{ search_stats.found }} encontradas ·
-        {{ search_stats.discarded }} afirmativa(s) descartada(s) ·
-        {{ search_stats.ranked }} nova(s) ranqueada(s).</span>
-    {% endif %}
-    {% if batch_stats %}
-      <span class="ok">Lote: {{ batch_stats.generated }} CV(s) gerado(s) de
-        {{ batch_stats.candidates }} (score ≥ {{ batch_stats.min_score }})
-        {%- if batch_stats.failed %} · {{ batch_stats.failed }} falha(s){% endif %}.</span>
-    {% endif %}
-    {% if search_error %}<span style="color:#e06">Falha: {{ search_error }}</span>{% endif %}
-  </div>
+<div class="eyebrow" style="margin-top:22px">
+  {{ jobs|length }} vaga(s) · ordenadas por aderência ao seu perfil
+  {% if search_stats %}· <span class="ok">busca: {{ search_stats.found }} encontradas,
+    {{ search_stats.discarded }} afirmativa(s) descartada(s), {{ search_stats.ranked }} nova(s) ranqueada(s)</span>{% endif %}
+  {% if batch_stats %}· <span class="ok">lote: {{ batch_stats.generated }}/{{ batch_stats.candidates }}
+    CV(s) (score ≥ {{ batch_stats.min_score }}){% if batch_stats.failed %}, {{ batch_stats.failed }} falha(s){% endif %}</span>{% endif %}
+  {% if search_error %}· <span style="color:var(--err)">falha: {{ search_error }}</span>{% endif %}
 </div>
 
 {% for j in jobs %}
-<div id="job-{{ j.id }}" class="panel" style="display:flex; gap:16px; align-items:flex-start">
-  <div style="flex:0 0 56px; text-align:center">
-    <div style="font-size:22px; font-weight:700">{{ j.score if j.score is not none else '–' }}</div>
-    <div class="hint" style="font-size:11px">score</div>
+{% set a = apps.get(j.id) %}
+{% set sc = j.score if j.score is not none else 0 %}
+{% set g = 'var(--ok)' if sc >= 75 else ('var(--accent)' if sc >= 45 else 'var(--slate)') %}
+<div id="job-{{ j.id }}" class="panel job-card">
+  <button class="x" hx-post="/jobs/{{ j.id }}/reject" hx-target="#job-{{ j.id }}" hx-swap="outerHTML"
+          hx-confirm="Rejeitar e ocultar esta vaga? Some de Vagas e Fila; não some do banco nem volta na busca."
+          title="Rejeitar / ocultar vaga" aria-label="Rejeitar vaga">&times;</button>
+  <div class="gauge" style="--v:{{ sc }};--g:{{ g }}">
+    <span>{{ j.score if j.score is not none else '–' }}</span><div class="cap">score</div>
   </div>
-  <div style="flex:1">
-    <div style="font-weight:600">{{ j.title }}</div>
-    <div class="hint">{{ j.company }} · {{ j.location }} · {{ j.platform }}</div>
-    {% if j.score_reason %}<div style="margin-top:6px">{{ j.score_reason }}</div>{% endif %}
-    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-      <a href="{{ j.url }}" target="_blank"><button class="ghost">Abrir vaga</button></a>
-      <span id="actions-{{ j.id }}" style="display:contents">
-        {% set a = apps.get(j.id) %}{% include "_job_actions.html" %}
-      </span>
-      <button class="ghost" hx-post="/jobs/{{ j.id }}/reject"
-              hx-target="#job-{{ j.id }}" hx-swap="outerHTML"
-              hx-confirm="Rejeitar e ocultar esta vaga? Some de /jobs e /queue; não some do banco nem volta na busca.">Rejeitar</button>
+  <div class="jbody">
+    <div class="jtop">
+      <a class="head" href="{{ j.url }}" target="_blank" title="Abrir vaga na plataforma">
+        <div class="title">{{ j.title }} <span class="ext">↗</span></div>
+        <div class="meta">{{ j.company }} · {{ j.location }} · <span class="plat">{{ j.platform }}</span></div>
+      </a>
+      {% if a and a.result == 'sent' %}<span class="chip ok"><span class="d"></span>enviada</span>
+      {% elif a and a.result == 'not_advanced' %}<span class="chip er"><span class="d"></span>não avançou</span>
+      {% elif j.status == 'pending_approval' %}<span class="chip wn"><span class="d"></span>revisar</span>
+      {% elif a and a.result == 'error' %}<span class="chip er"><span class="d"></span>erro</span>
+      {% elif a and a.cv_pdf_path %}<span class="chip nt"><span class="d"></span>CV pronto</span>
+      {% elif j.score is not none %}<span class="chip nt"><span class="d"></span>ranqueada</span>
+      {% else %}<span class="chip nt"><span class="d"></span>nova</span>{% endif %}
     </div>
+    {% if j.score_reason %}<div class="reason">{{ j.score_reason }}</div>{% endif %}
+    <div class="actions" id="actions-{{ j.id }}">{% include "_job_actions.html" %}</div>
     <div id="cover-{{ j.id }}"></div>
   </div>
 </div>
 {% else %}
-<div class="panel hint">Nenhuma vaga ainda. Clique em <b>Buscar vagas</b> acima.</div>
+<div class="panel hint">Nenhuma vaga ainda. Use <b>Buscar</b> acima.</div>
 {% endfor %}

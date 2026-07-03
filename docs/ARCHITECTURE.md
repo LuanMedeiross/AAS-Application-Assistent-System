@@ -1,4 +1,4 @@
-# Architecture — Application Assistant
+# Architecture — Application Assistant System
 
 > The "how". Technical decisions and structure. The "what" lives in `SPEC.md`; the "why" in
 > IDEA.md. **When in doubt about an area, read its section here before touching it.**

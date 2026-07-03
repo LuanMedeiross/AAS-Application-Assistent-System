@@ -1,53 +1,55 @@
 {% extends "base.html" %}
-{% block title %}Fila de aprovação — Application Assistant{% endblock %}
+{% block title %}Fila — Application Assistant System{% endblock %}
 {% block content %}
-<div class="panel">
-  <div class="hint">
-    Fila de candidaturas. <b>Candidatar-se</b> dispara a candidatura automática (abre o navegador
-    logado, preenche e envia). Confirme no diálogo — nada é enviado sem sua confirmação.
+
+<div class="eyebrow">Candidatura em lote</div>
+<div class="cmd">
+  <div class="hint" style="flex:1;min-width:220px">
+    Candidata a todas com CV gerado e ainda não enviadas — máx. 5 navegadores por vez, em segundo plano.
+    Cada envio confirma no diálogo antes do passo irreversível.
   </div>
-  <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-    <button hx-post="/queue/apply-all" hx-target="#batch-status" hx-swap="outerHTML"
-            hx-confirm="Candidatar-se automaticamente a TODAS as vagas com CV ainda não enviadas? (roda em segundo plano, no máx. 5 navegadores por vez)">
-      Candidatar em lote
-    </button>
-    <span class="hint">Aplica em todas as preparadas (CV gerado, não enviadas), 5 por vez, em segundo plano.</span>
-  </div>
-  {% include "_batch_status.html" %}
+  <button hx-post="/queue/apply-all" hx-target="#batch-status" hx-swap="outerHTML"
+          hx-confirm="Candidatar-se automaticamente a TODAS as vagas com CV ainda não enviadas?">Candidatar em lote</button>
 </div>
 
+{% include "_batch_status.html" %}
+
+<div class="eyebrow" style="margin-top:22px">{{ items|length }} vaga(s) com CV gerado</div>
+
 {% for job, app in items %}
-<div id="qjob-{{ job.id }}" class="panel">
-  <div style="display:flex; gap:14px; align-items:flex-start">
-    <div style="flex:0 0 48px; text-align:center">
-      <div style="font-size:20px; font-weight:700">{{ job.score if job.score is not none else '–' }}</div>
-      <div class="hint" style="font-size:11px">score</div>
+{% set sc = job.score if job.score is not none else 0 %}
+{% set g = 'var(--ok)' if sc >= 75 else ('var(--accent)' if sc >= 45 else 'var(--slate)') %}
+<div id="qjob-{{ job.id }}" class="panel job-card">
+  <button class="x" hx-post="/jobs/{{ job.id }}/reject" hx-target="#qjob-{{ job.id }}" hx-swap="outerHTML"
+          hx-confirm="Rejeitar e ocultar esta vaga?" title="Rejeitar / ocultar vaga" aria-label="Rejeitar vaga">&times;</button>
+  <div class="gauge" style="--v:{{ sc }};--g:{{ g }}">
+    <span>{{ job.score if job.score is not none else '–' }}</span><div class="cap">score</div>
+  </div>
+  <div class="jbody">
+    <div class="jtop">
+      <a class="head" href="{{ job.url }}" target="_blank" title="Abrir vaga na plataforma">
+        <div class="title">{{ job.title }} <span class="ext">↗</span></div>
+        <div class="meta">{{ job.company }} · {{ job.location }} · <span class="plat">{{ job.platform }}</span></div>
+      </a>
+      {% if app.result == 'sent' %}<span class="chip ok"><span class="d"></span>enviada</span>
+      {% elif app.result == 'not_advanced' %}<span class="chip er"><span class="d"></span>não avançou</span>
+      {% elif job.status == 'pending_approval' %}<span class="chip wn"><span class="d"></span>revisar</span>
+      {% elif app.result == 'error' %}<span class="chip er"><span class="d"></span>erro</span>
+      {% else %}<span class="chip nt"><span class="d"></span>CV pronto</span>{% endif %}
     </div>
-    <div style="flex:1">
-      <div style="font-weight:600">{{ job.title }}</div>
-      <div class="hint">{{ job.company }} · {{ job.location }} · {{ job.platform }}
-        · status: <b>{{ job.status }}</b>{% if app.result %} · envio: {{ app.result }}{% endif %}</div>
-      <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-        <a href="/jobs/{{ job.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
-        <button class="ghost" hx-get="/jobs/{{ job.id }}/cover" hx-target="#qc-{{ job.id }}">Ver carta</button>
-        {% if app.form_qa %}<button class="ghost" hx-get="/jobs/{{ job.id }}/questions" hx-target="#qc-{{ job.id }}">Perguntas</button>{% endif %}
-        {% if job.status == 'applied' %}
-          <span class="tag ok">✅ Candidatura enviada</span>
-        {% else %}
-          <button hx-post="/jobs/{{ job.id }}/apply" hx-target="#batch-status" hx-swap="outerHTML"
-                  hx-confirm="Candidatar-se a {{ job.company }}? (entra na fila e roda em segundo plano)">Candidatar-se</button>
-        {% endif %}
-        <button class="ghost" hx-post="/jobs/{{ job.id }}/reject"
-                hx-target="#qjob-{{ job.id }}" hx-swap="outerHTML"
-                hx-confirm="Rejeitar e ocultar esta vaga?">Rejeitar</button>
-        <span id="qspin-{{ job.id }}" class="htmx-indicator hint">⏳ candidatando (abre o navegador)…</span>
-        <span id="qs-{{ job.id }}" class="hint"></span>
-      </div>
-      <div id="qc-{{ job.id }}"></div>
+    <div class="actions">
+      {% if job.status != 'applied' and app.result not in ('sent', 'not_advanced') %}
+        <button class="act primary" hx-post="/jobs/{{ job.id }}/apply" hx-target="#batch-status" hx-swap="outerHTML"
+                hx-confirm="Candidatar-se a {{ job.company }}? (entra na fila e roda em segundo plano)">Candidatar-se</button>
+      {% endif %}
+      <a class="act" href="/jobs/{{ job.id }}/cv.pdf" target="_blank">Ver CV</a>
+      <button class="act" hx-get="/jobs/{{ job.id }}/cover" hx-target="#qc-{{ job.id }}" hx-swap="innerHTML">Ver carta</button>
+      {% if app.form_qa %}<button class="act" hx-get="/jobs/{{ job.id }}/questions" hx-target="#qc-{{ job.id }}" hx-swap="innerHTML">Perguntas</button>{% endif %}
     </div>
+    <div id="qc-{{ job.id }}"></div>
   </div>
 </div>
 {% else %}
-<div class="panel hint">Nada na fila. Gere um CV com <code>scripts/tailor_job.py</code> primeiro.</div>
+<div class="panel hint">Nada na fila. Gere um CV em <b>Vagas</b> primeiro.</div>
 {% endfor %}
 {% endblock %}

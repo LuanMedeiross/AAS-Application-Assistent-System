@@ -1,29 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Vagas — Application Assistant{% endblock %}
+{% block title %}Vagas — Application Assistant System{% endblock %}
 {% block content %}
-<div class="panel">
+
+<div class="eyebrow">Buscar &amp; gerar</div>
+<div class="cmd">
   <form hx-post="/jobs/search" hx-target="#joblist" hx-swap="innerHTML"
         hx-indicator="#search-spin" hx-disabled-elt="find button"
-        style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-    <input name="keywords" value="{{ default_keywords }}"
-           placeholder="palavras-chave separadas por vírgula (ex.: pentest, appsec)"
-           style="flex:1; min-width:240px">
-    <button type="submit">Buscar vagas</button>
-    <span id="search-spin" class="htmx-indicator hint">⏳ descobrindo + ranqueando… (pode levar alguns minutos)</span>
+        style="margin:0;display:flex;gap:10px;flex:1;min-width:260px">
+    <label class="search" style="flex:1">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input name="keywords" value="{{ default_keywords }}" placeholder="pentest, appsec, blue team…">
+    </label>
+    <button type="submit">Buscar</button>
   </form>
-</div>
-
-<div class="panel">
   <form hx-post="/jobs/tailor-all" hx-target="#joblist" hx-swap="innerHTML"
         hx-indicator="#batch-spin" hx-disabled-elt="find button"
         hx-confirm="Gerar CV para todas as vagas sem CV com score ≥ o mínimo? Pode demorar (uma chamada de IA por vaga)."
-        style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0">
-    <span class="hint">Gerar CV em lote — score mínimo</span>
-    <input type="number" name="min_score" value="30" min="0" max="100" style="width:72px">
-    <button type="submit">Gerar p/ todas sem CV</button>
-    <span id="batch-spin" class="htmx-indicator hint">⏳ gerando em lote… (pode demorar bastante)</span>
+        style="margin:0;display:flex;align-items:center;gap:8px">
+    <span class="sub">CV em lote · score ≥ <input type="number" name="min_score" value="30" min="0" max="100"></span>
+    <button class="ghost" type="submit">Gerar p/ todas</button>
   </form>
+  <span id="search-spin" class="htmx-indicator hint">⏳ descobrindo + ranqueando…</span>
+  <span id="batch-spin" class="htmx-indicator hint">⏳ gerando CVs…</span>
 </div>
+
+{% if summary %}
+<div class="summary">
+  <div class="stat"><div class="n">{{ summary.visible }}</div><div class="l">vagas visíveis</div></div>
+  <div class="stat"><div class="n ok">{{ summary.sent }}</div><div class="l">enviadas</div></div>
+  <div class="stat"><div class="n er">{{ summary.not_advanced }}</div><div class="l">não avançou</div></div>
+  <div class="stat"><div class="n wn">{{ summary.needs_review }}</div><div class="l">revisar</div></div>
+  <div class="stat"><div class="n">{{ summary.cv_ready }}</div><div class="l">CV pronto</div></div>
+</div>
+{% endif %}
+
+{% include "_batch_status.html" %}
 
 <div id="joblist">{% include "_job_list.html" %}</div>
 {% endblock %}

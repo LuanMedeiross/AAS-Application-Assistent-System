@@ -1,4 +1,4 @@
-# Application Assistant
+# Application Assistant System
 
 > **Project master context** (loaded in every session). App that automates job applications
 > using an LLM (DeepSeek by default, or a local OpenAI-compatible server) + browser/API automation. Detail that is not a rule lives in

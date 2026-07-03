@@ -1,4 +1,4 @@
-# SPEC — Application Assistant
+# SPEC — Application Assistant System
 
 > Functional specification: the "what". Source of truth for the code (spec-first).
 > Vision/"why" in `IDEA.md`. Architecture/"how" in `docs/ARCHITECTURE.md`.

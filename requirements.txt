@@ -1,4 +1,4 @@
-# Application Assistant — dependências
+# Application Assistant System — dependências
 # Fase 1 usa o subconjunto leve (web/db/ia). playwright/curl_cffi/weasyprint/2captcha
 # entram nas fases seguintes (navegador, captcha, PDF), mas ficam declarados aqui.
 

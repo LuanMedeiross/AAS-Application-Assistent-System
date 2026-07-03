@@ -1,11 +1,16 @@
-{% if a %}
-  <a href="/jobs/{{ j.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
-  <button class="ghost" hx-get="/jobs/{{ j.id }}/cover" hx-target="#cover-{{ j.id }}" hx-swap="innerHTML">Ver carta</button>
-  <button class="ghost" hx-post="/jobs/{{ j.id }}/tailor" hx-target="#actions-{{ j.id }}"
+{% if a and a.cv_pdf_path %}
+  {% if j.status != 'applied' and a.result not in ('sent', 'not_advanced') %}
+    <button class="act primary" hx-post="/jobs/{{ j.id }}/apply"
+            hx-target="#batch-status" hx-swap="outerHTML"
+            hx-confirm="Candidatar-se a {{ j.company }}? (entra na fila e roda em segundo plano)">Candidatar-se</button>
+  {% endif %}
+  <a class="act" href="/jobs/{{ j.id }}/cv.pdf" target="_blank">Ver CV</a>
+  <button class="act" hx-get="/jobs/{{ j.id }}/cover" hx-target="#cover-{{ j.id }}" hx-swap="innerHTML">Ver carta</button>
+  {% if a.form_qa %}<button class="act" hx-get="/jobs/{{ j.id }}/questions" hx-target="#cover-{{ j.id }}" hx-swap="innerHTML">Perguntas</button>{% endif %}
+  <button class="act" hx-post="/jobs/{{ j.id }}/tailor" hx-target="#actions-{{ j.id }}"
           hx-swap="innerHTML" hx-indicator="#spin-{{ j.id }}" hx-disabled-elt="this">Regerar</button>
-  {% if j.status == 'applied' %}<span class="tag ok">✅ Candidatura enviada</span>{% endif %}
 {% else %}
-  <button hx-post="/jobs/{{ j.id }}/tailor" hx-target="#actions-{{ j.id }}"
+  <button class="act primary" hx-post="/jobs/{{ j.id }}/tailor" hx-target="#actions-{{ j.id }}"
           hx-swap="innerHTML" hx-indicator="#spin-{{ j.id }}" hx-disabled-elt="this">Gerar currículo</button>
 {% endif %}
 <span id="spin-{{ j.id }}" class="htmx-indicator hint">⏳ processando…</span>

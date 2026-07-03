@@ -1,4 +1,4 @@
-# Idea — Application Assistant
+# Idea — Application Assistant System
 
 > Product vision and context. The "why" document. Technical decisions live in
 > `docs/ARCHITECTURE.md`; the detailed "what" in `SPEC.md`.

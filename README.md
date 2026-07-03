@@ -1,4 +1,4 @@
-# Application Assistant
+# Application Assistant System
 
 A **local, single-user** app that automates job applications end to end using AI (OpenAI-compatible,
 configurable via `.env` — defaults to DeepSeek) +

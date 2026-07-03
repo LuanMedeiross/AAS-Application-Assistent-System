@@ -3,38 +3,140 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Application Assistant{% endblock %}</title>
+  <title>{% block title %}Application Assistant System{% endblock %}</title>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style>
-    :root { --bg:#0f1115; --panel:#171a21; --line:#272b34; --fg:#e6e8ec; --muted:#9aa0ab; --accent:#3a7afe; }
-    * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, Segoe UI, Roboto, sans-serif; }
-    header { padding:16px 24px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; }
-    header h1 { font-size:16px; margin:0; }
-    header nav a { color:var(--muted); text-decoration:none; margin-left:16px; }
-    main { max-width:880px; margin:0 auto; padding:24px; }
-    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:20px; }
-    label { display:block; color:var(--muted); font-size:13px; margin:12px 0 4px; }
-    input, textarea, select { width:100%; background:#0c0e12; color:var(--fg); border:1px solid var(--line);
-      border-radius:7px; padding:9px 11px; font:inherit; }
-    textarea { min-height:90px; resize:vertical; }
-    .row { display:flex; gap:16px; } .row > div { flex:1; }
-    button { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:10px 16px;
-      font:inherit; cursor:pointer; }
-    button.ghost { background:transparent; border:1px solid var(--line); color:var(--fg); }
-    .hint { color:var(--muted); font-size:13px; }
-    .ok { color:#54d18c; }
-    .tag { display:inline-block; background:#0c0e12; border:1px solid var(--line); border-radius:14px;
-      padding:3px 10px; margin:3px 4px 0 0; font-size:13px; }
-    button:disabled { opacity:.5; cursor:progress; }
-    .htmx-indicator { display:none; }
-    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display:inline; }
+    :root{
+      color-scheme: dark;
+      --bg:#0e1014; --bg2:#0b0d11; --panel:#161a21; --panel2:#1b2027; --line:#242a34;
+      --fg:#e7e9ee; --fg-dim:#b8bec9; --muted:#828b99; --faint:#5b6472;
+      --accent:#4c86ff; --accent-h:#5b91ff;
+      --ok:#3fb984; --warn:#e0a13c; --err:#e0556e; --slate:#7c8595;
+      --r:12px; --r-sm:8px;
+      --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+      --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:radial-gradient(1200px 600px at 80% -10%, #12161d 0%, transparent 60%),var(--bg);
+      color:var(--fg);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased;}
+    a{color:inherit;text-decoration:none;}
+    ::selection{background:rgba(76,134,255,.28);}
+
+    /* ---------- top bar ---------- */
+    header{position:sticky;top:0;z-index:20;background:rgba(14,16,20,.82);
+      backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+    .bar{max-width:920px;margin:0 auto;padding:13px 22px;display:flex;align-items:center;gap:18px;}
+    .logo{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.01em;color:var(--fg);}
+    .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(76,134,255,.18);}
+    nav{margin-left:auto;display:flex;gap:4px;}
+    nav a{padding:7px 13px;border-radius:8px;color:var(--muted);font-weight:500;font-size:13px;}
+    nav a:hover{color:var(--fg);background:var(--panel);}
+    nav a.on{color:var(--fg);background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);}
+    main{max-width:920px;margin:0 auto;padding:8px 22px 64px;}
+
+    /* ---------- primitives ---------- */
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px;}
+    label{display:block;color:var(--muted);font-size:13px;margin:12px 0 4px;}
+    input,textarea,select{width:100%;background:var(--bg2);color:var(--fg);border:1px solid var(--line);
+      border-radius:var(--r-sm);padding:9px 11px;font:inherit;outline:none;}
+    input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+    textarea{min-height:90px;resize:vertical;}
+    .row{display:flex;gap:16px;} .row > div{flex:1;}
+    button{background:var(--accent);color:#fff;border:0;border-radius:var(--r-sm);padding:9px 15px;
+      font:600 13px var(--sans);cursor:pointer;}
+    button:hover{background:var(--accent-h);}
+    button.ghost{background:var(--panel2);color:var(--fg-dim);box-shadow:inset 0 0 0 1px var(--line);}
+    button.ghost:hover{color:var(--fg);background:#20262f;}
+    button:disabled{opacity:.5;cursor:progress;}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+    .hint{color:var(--muted);font-size:13px;}
+    .ok{color:var(--ok);}
+    .eyebrow{font:11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:26px 2px 12px;}
+    .tag{display:inline-block;background:var(--bg2);border:1px solid var(--line);border-radius:14px;
+      padding:3px 10px;margin:3px 4px 0 0;font-size:13px;}
+    .htmx-indicator{display:none;}
+    .htmx-request .htmx-indicator,.htmx-request.htmx-indicator{display:inline;}
+
+    /* ---------- command strip ---------- */
+    .cmd{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+      border-radius:var(--r);padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .search{flex:1;min-width:220px;height:40px;display:flex;align-items:center;gap:9px;background:var(--bg2);
+      border:1px solid var(--line);border-radius:var(--r-sm);padding:0 12px;}
+    .search:focus-within{border-color:var(--accent);}
+    .search input{border:0;background:none;padding:0;}
+    .search input:focus{border:0;}
+    .search svg{flex:none;color:var(--muted);}
+    .cmd button{height:40px;padding:0 16px;}  /* "Buscar" e "Gerar p/ todas" na mesma altura do campo */
+    .cmd .sub{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;}
+    .cmd .sub input{width:56px;padding:6px 8px;font:600 13px var(--mono);text-align:center;}
+
+    /* ---------- funnel summary ---------- */
+    .summary{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:12px;}
+    .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;}
+    .stat .n{font:650 20px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+    .stat .l{font-size:11px;color:var(--muted);margin-top:5px;}
+    .stat .n.ok{color:var(--ok);} .stat .n.wn{color:var(--warn);} .stat .n.er{color:var(--err);}
+
+    /* ---------- job card ---------- */
+    .job-card{position:relative;display:flex;gap:16px;transition:border-color .15s;}
+    .job-card:hover{border-color:#33404f;}
+    .x{position:absolute;top:9px;right:11px;width:26px;height:26px;padding:0;border:0;border-radius:7px;
+      background:none;color:var(--faint);font-size:19px;line-height:1;cursor:pointer;transition:.12s;}
+    .x:hover{color:#fff;background:var(--err);}
+    .gauge{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;position:relative;
+      font:650 17px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);}
+    .gauge span{position:relative;z-index:1;}
+    .gauge::before{content:"";position:absolute;inset:0;border-radius:50%;
+      background:conic-gradient(var(--g) calc(var(--v)*1%),var(--line) 0);
+      -webkit-mask:radial-gradient(circle,transparent 60%,#000 61%);mask:radial-gradient(circle,transparent 60%,#000 61%);}
+    .gauge .cap{position:absolute;bottom:-15px;left:0;right:0;text-align:center;
+      font:9px/1 var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase;}
+    .jbody{flex:1;min-width:0;padding-right:22px;}
+    .jtop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .head:hover .title{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+    .title{font-weight:600;font-size:15px;letter-spacing:-.01em;text-wrap:balance;margin-bottom:3px;
+      display:inline-flex;align-items:center;gap:8px;}
+    .title .ext{color:var(--faint);font-size:12px;opacity:0;transition:.12s;}
+    .head:hover .ext{opacity:1;}
+    .meta{color:var(--muted);font-size:12.5px;}
+    .plat{font-family:var(--mono);font-size:11.5px;color:var(--fg-dim);background:var(--bg2);
+      border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-left:2px;}
+    .reason{color:var(--fg-dim);font-size:12.5px;margin-top:8px;line-height:1.5;}
+    .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+    .act{display:inline-flex;align-items:center;text-decoration:none;border:0;border-radius:7px;
+      padding:7px 12px;font:500 12.5px var(--sans);cursor:pointer;
+      background:var(--panel2);color:var(--fg-dim);box-shadow:inset 0 0 0 1px var(--line);}
+    .act:hover{color:var(--fg);background:#20262f;}
+    .act.primary{background:var(--accent);color:#fff;box-shadow:none;}
+    .act.primary:hover{background:var(--accent-h);}
+
+    /* ---------- state chip ---------- */
+    .chip{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--sans);
+      padding:5px 9px;border-radius:20px;white-space:nowrap;}
+    .chip .d{width:6px;height:6px;border-radius:50%;background:currentColor;}
+    .chip.ok{color:var(--ok);background:rgba(63,185,132,.12);}
+    .chip.sl{color:var(--slate);background:rgba(124,133,149,.14);}
+    .chip.wn{color:var(--warn);background:rgba(224,161,60,.13);}
+    .chip.er{color:var(--err);background:rgba(224,85,110,.13);}
+    .chip.nt{color:var(--fg-dim);background:var(--bg2);box-shadow:inset 0 0 0 1px var(--line);}
+
+    @media(max-width:640px){
+      .summary{grid-template-columns:repeat(2,1fr);}
+      .jbody{padding-right:8px;}
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>Application Assistant</h1>
-    <nav><a href="/profile">Profile</a><a href="/jobs">Vagas</a><a href="/queue">Fila</a></nav>
+    <div class="bar">
+      <div class="logo"><span class="dot"></span>Application Assistant System</div>
+      <nav>
+        {% set path = request.url.path if request else '' %}
+        <a href="/profile" class="{{ 'on' if path.startswith('/profile') else '' }}">Perfil</a>
+        <a href="/jobs" class="{{ 'on' if path.startswith('/jobs') else '' }}">Vagas</a>
+        <a href="/queue" class="{{ 'on' if path.startswith('/queue') else '' }}">Fila</a>
+      </nav>
+    </div>
   </header>
   <main>{% block content %}{% endblock %}</main>
 </body>

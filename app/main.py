@@ -11,7 +11,7 @@ from .web.routes import router
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Application Assistant")
+    app = FastAPI(title="Application Assistant System")
 
     @app.on_event("startup")
     def _startup() -> None:

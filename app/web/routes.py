@@ -127,14 +127,21 @@ def profile_save(
 def jobs_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     jobs = jobs_by_score(session)
     apps = {a.job_id: a for a in session.exec(select(Application)).all()}
+    vapps = [apps[j.id] for j in jobs if j.id in apps]  # só das vagas visíveis (não ocultas)
+    summary = {
+        "visible": len(jobs),
+        "sent": sum(1 for a in vapps if a.result == "sent"),
+        "not_advanced": sum(1 for a in vapps if a.result == "not_advanced"),
+        "needs_review": sum(1 for j in jobs if j.status == "pending_approval"),
+        "cv_ready": sum(1 for a in vapps if a.cv_pdf_path and a.result not in ("sent", "not_advanced")),
+    }
     profile = get_or_create_profile(session)
     default_kw = ", ".join(profile.target_roles) if profile.target_roles else \
         "pentest, appsec, red team, segurança da informação"
-    return templates.TemplateResponse(
-        request, "jobs.html",
-        {"jobs": jobs, "apps": apps, "allow_real": settings.allow_real_submit,
-         "default_keywords": default_kw},
-    )
+    ctx = {"jobs": jobs, "apps": apps, "allow_real": settings.allow_real_submit,
+           "default_keywords": default_kw, "summary": summary}
+    ctx.update(_batch_ctx(session))  # painel da fila p/ o "Candidatar-se" dos cards (mesma infra do /queue)
+    return templates.TemplateResponse(request, "jobs.html", ctx)
 
 
 @router.post("/jobs/search", response_class=HTMLResponse)
