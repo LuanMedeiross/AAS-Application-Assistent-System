@@ -53,8 +53,10 @@ def _is_recent(job: dict, max_age_days: int) -> bool:
         return True
     try:
         dt = datetime.fromisoformat(pd.replace("Z", "+00:00"))
-    except ValueError:
+    except (ValueError, TypeError):
         return True
+    if dt.tzinfo is None:  # publishedDate sem fuso (ex.: data pura) → assume UTC p/ poder comparar
+        dt = dt.replace(tzinfo=timezone.utc)
     return dt >= datetime.now(timezone.utc) - timedelta(days=max_age_days)
 
 
