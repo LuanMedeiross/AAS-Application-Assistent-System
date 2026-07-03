@@ -16,7 +16,7 @@
 </div>
 
 {% for j in jobs %}
-<div class="panel" style="display:flex; gap:16px; align-items:flex-start">
+<div id="job-{{ j.id }}" class="panel" style="display:flex; gap:16px; align-items:flex-start">
   <div style="flex:0 0 56px; text-align:center">
     <div style="font-size:22px; font-weight:700">{{ j.score if j.score is not none else '–' }}</div>
     <div class="hint" style="font-size:11px">score</div>
@@ -30,6 +30,9 @@
       <span id="actions-{{ j.id }}" style="display:contents">
         {% set a = apps.get(j.id) %}{% include "_job_actions.html" %}
       </span>
+      <button class="ghost" hx-post="/jobs/{{ j.id }}/reject"
+              hx-target="#job-{{ j.id }}" hx-swap="outerHTML"
+              hx-confirm="Rejeitar e ocultar esta vaga? Some de /jobs e /queue; não some do banco nem volta na busca.">Rejeitar</button>
     </div>
     <div id="cover-{{ j.id }}"></div>
   </div>

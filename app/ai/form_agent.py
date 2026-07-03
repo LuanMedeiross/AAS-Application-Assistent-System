@@ -155,7 +155,7 @@ def map_form(
         "VAGA": {
             "title": (job or {}).get("title", ""),
             "company": (job or {}).get("company", ""),
-            "description": ((job or {}).get("description", "") or "")[:2000],
+            "description": (job or {}).get("description", "") or "",  # descrição INTEIRA (máx. contexto)
         },
         "CARTA": cover_letter or "",
         "PERGUNTAS": _questions_payload(askable),

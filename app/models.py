@@ -124,9 +124,12 @@ class Job(SQLModel, table=True):
     score: Optional[int] = None
     score_reason: str = ""
 
-    # discovered|ranked|tailored|pending_approval|applied|rejected|failed
+    # discovered|ranked|tailored|pending_approval|applied|failed
     # (pending_approval = auto-apply parou em needs_review; retomar via "Candidatar-se")
     status: str = Field(default="discovered", index=True)
+    # Rejeitada/ocultada pelo usuário: filtrada de /jobs e /queue. A linha PERSISTE (não some do
+    # banco), então o dedupe por (platform, external_id) evita que a descoberta a reinsira.
+    hidden: bool = Field(default=False, index=True)
     discovered_at: datetime = Field(default_factory=_now)
 
 

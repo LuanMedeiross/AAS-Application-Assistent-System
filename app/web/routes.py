@@ -254,7 +254,7 @@ def _batch_ctx(session: Session, enqueued: int | None = None) -> dict:
 def queue_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     apps = session.exec(select(Application)).all()
     jobs = {j.id: j for j in session.exec(select(Job)).all()}
-    items = [(jobs[a.job_id], a) for a in apps if a.job_id in jobs]
+    items = [(jobs[a.job_id], a) for a in apps if a.job_id in jobs and not jobs[a.job_id].hidden]
     items.sort(key=lambda t: (t[0].score or 0), reverse=True)
     ctx = {"items": items, "allow_real": settings.allow_real_submit}
     ctx.update(_batch_ctx(session))
@@ -267,7 +267,8 @@ def queue_apply_all(request: Request, session: Session = Depends(get_session)) -
     apps = session.exec(select(Application)).all()
     jobs = {j.id: j for j in session.exec(select(Job)).all()}
     eligible = [a.job_id for a in apps
-                if a.cv_pdf_path and a.job_id in jobs and jobs[a.job_id].status != "applied"]
+                if a.cv_pdf_path and a.job_id in jobs
+                and not jobs[a.job_id].hidden and jobs[a.job_id].status != "applied"]
     enq = sum(1 for jid in eligible if applyqueue.enqueue(jid))
     return templates.TemplateResponse(request, "_batch_status.html", _batch_ctx(session, enqueued=enq))
 
@@ -280,11 +281,16 @@ def queue_apply_status(request: Request, session: Session = Depends(get_session)
 
 @router.post("/jobs/{job_id}/reject", response_class=HTMLResponse)
 def job_reject(job_id: int, session: Session = Depends(get_session)) -> HTMLResponse:
+    """Rejeita/oculta a vaga: `hidden=True` (some de /jobs E /queue). A linha PERSISTE no banco,
+    então a descoberta não a reinsere (dedupe por `external_id`). Devolve vazio: o alvo HTMX é a
+    própria linha (hx-swap=outerHTML), que desaparece da tela."""
     job = session.get(Job, job_id)
-    job.status = "rejected"
+    if job is None:
+        return HTMLResponse("", status_code=404)
+    job.hidden = True
     session.add(job)
-    audit.log(session, "reject", platform=job.platform, job_id=job_id)
-    return HTMLResponse('<span class="hint">Vaga rejeitada.</span>')
+    audit.log(session, "reject", platform=job.platform, job_id=job_id)  # comita o hidden junto
+    return HTMLResponse("")
 
 
 @router.post("/profile/suggest-seniority", response_class=HTMLResponse)

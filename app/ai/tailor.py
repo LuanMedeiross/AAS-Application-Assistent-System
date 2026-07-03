@@ -86,7 +86,7 @@ def generate(master_cv: dict, job: dict) -> TailorResult:
             "title": job.get("title") or job.get("name"),
             "company": job.get("company") or job.get("careerPageName"),
             "location": job.get("location"),
-            "description": (job.get("description") or "")[:4000],
+            "description": job.get("description") or "",  # descrição INTEIRA (máx. contexto p/ o CV)
         },
     }
     user = json.dumps(payload, ensure_ascii=False)

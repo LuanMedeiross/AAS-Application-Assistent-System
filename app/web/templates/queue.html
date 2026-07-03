@@ -17,7 +17,7 @@
 </div>
 
 {% for job, app in items %}
-<div class="panel">
+<div id="qjob-{{ job.id }}" class="panel">
   <div style="display:flex; gap:14px; align-items:flex-start">
     <div style="flex:0 0 48px; text-align:center">
       <div style="font-size:20px; font-weight:700">{{ job.score if job.score is not none else '–' }}</div>
@@ -37,7 +37,9 @@
           <button hx-post="/jobs/{{ job.id }}/apply" hx-target="#batch-status" hx-swap="outerHTML"
                   hx-confirm="Candidatar-se a {{ job.company }}? (entra na fila e roda em segundo plano)">Candidatar-se</button>
         {% endif %}
-        <button class="ghost" hx-post="/jobs/{{ job.id }}/reject" hx-target="#qs-{{ job.id }}">Rejeitar</button>
+        <button class="ghost" hx-post="/jobs/{{ job.id }}/reject"
+                hx-target="#qjob-{{ job.id }}" hx-swap="outerHTML"
+                hx-confirm="Rejeitar e ocultar esta vaga?">Rejeitar</button>
         <span id="qspin-{{ job.id }}" class="htmx-indicator hint">⏳ candidatando (abre o navegador)…</span>
         <span id="qs-{{ job.id }}" class="hint"></span>
       </div>

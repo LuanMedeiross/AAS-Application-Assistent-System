@@ -97,7 +97,7 @@ def discover_and_rank(
     cv = profile.to_master_cv()
     ranked = 0
     for j in saved:
-        if j.score is not None:
+        if j.score is not None or j.hidden:  # já ranqueada, ou oculta pelo usuário → pula
             continue
         try:
             r = rank_job(cv, {"title": j.title, "company": j.company,

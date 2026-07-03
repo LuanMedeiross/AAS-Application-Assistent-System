@@ -36,6 +36,7 @@ def _run_light_migrations() -> None:
     additions = {
         # table -> {column: DDL type with default}
         "application": {"form_qa": "JSON DEFAULT '[]'"},
+        "job": {"hidden": "BOOLEAN DEFAULT 0"},
     }
     with engine.begin() as conn:
         for table, columns in additions.items():

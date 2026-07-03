@@ -54,5 +54,8 @@ def save_postings(session: Session, postings) -> list[Job]:
 
 
 def jobs_by_score(session: Session) -> list[Job]:
-    """Vagas ordenadas por score desc (não ranqueadas por último)."""
-    return list(session.exec(select(Job).order_by(Job.score.is_(None), Job.score.desc())).all())
+    """Vagas VISÍVEIS (não ocultas) ordenadas por score desc (não ranqueadas por último)."""
+    return list(session.exec(
+        select(Job).where(Job.hidden == False)  # noqa: E712 — SQLModel usa == para o filtro
+        .order_by(Job.score.is_(None), Job.score.desc())
+    ).all())

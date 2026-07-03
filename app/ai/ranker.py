@@ -66,7 +66,7 @@ def _job_brief(job: dict) -> dict:
         "title": job.get("title") or job.get("name"),
         "company": job.get("company") or job.get("careerPageName"),
         "location": job.get("location"),
-        "description": desc[:3000],
+        "description": desc,  # descrição INTEIRA (máx. contexto p/ o score)
     }
 
 

@@ -50,7 +50,9 @@
 - `id`, `platform` (gupy/inhire/indeed/...), `external_id`, `url`
 - `title`, `company`, `location`, `description`, `raw` (JSON of the original payload)
 - `score` (0–100, nullable), `score_reason` (nullable)
-- `status` (`discovered`/`ranked`/`tailored`/`pending_approval`/`applied`/`rejected`/`failed`)
+- `status` (`discovered`/`ranked`/`tailored`/`pending_approval`/`applied`/`failed`)
+- `hidden` (bool) — rejeitada/ocultada pelo usuário; filtrada de `/jobs` e `/queue`. A linha
+  PERSISTE, então o dedupe por `(platform, external_id)` impede que a descoberta a reinsira.
 - `discovered_at`
 
 **Application** (application)
