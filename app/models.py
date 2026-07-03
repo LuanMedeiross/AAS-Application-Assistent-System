@@ -124,7 +124,8 @@ class Job(SQLModel, table=True):
     score: Optional[int] = None
     score_reason: str = ""
 
-    # discovered|ranked|tailored|pending_approval|approved|applied|rejected|failed
+    # discovered|ranked|tailored|pending_approval|applied|rejected|failed
+    # (pending_approval = auto-apply parou em needs_review; retomar via "Candidatar-se")
     status: str = Field(default="discovered", index=True)
     discovered_at: datetime = Field(default_factory=_now)
 

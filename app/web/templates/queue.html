@@ -31,13 +31,11 @@
         <a href="/jobs/{{ job.id }}/cv.pdf" target="_blank"><button class="ghost">Ver CV (PDF)</button></a>
         <button class="ghost" hx-get="/jobs/{{ job.id }}/cover" hx-target="#qc-{{ job.id }}">Ver carta</button>
         {% if app.form_qa %}<button class="ghost" hx-get="/jobs/{{ job.id }}/questions" hx-target="#qc-{{ job.id }}">Perguntas</button>{% endif %}
-        <button class="ghost" hx-post="/jobs/{{ job.id }}/prepare" hx-target="#qs-{{ job.id }}">Preparar/validar</button>
         {% if job.status == 'applied' %}
           <span class="tag ok">✅ Candidatura enviada</span>
         {% else %}
-          <button hx-post="/jobs/{{ job.id }}/apply" hx-target="#qs-{{ job.id }}"
-                  hx-indicator="#qspin-{{ job.id }}" hx-disabled-elt="this"
-                  hx-confirm="Deseja continuar com a candidatura para {{ job.company }}?">Candidatar-se</button>
+          <button hx-post="/jobs/{{ job.id }}/apply" hx-target="#batch-status" hx-swap="outerHTML"
+                  hx-confirm="Candidatar-se a {{ job.company }}? (entra na fila e roda em segundo plano)">Candidatar-se</button>
         {% endif %}
         <button class="ghost" hx-post="/jobs/{{ job.id }}/reject" hx-target="#qs-{{ job.id }}">Rejeitar</button>
         <span id="qspin-{{ job.id }}" class="htmx-indicator hint">⏳ candidatando (abre o navegador)…</span>

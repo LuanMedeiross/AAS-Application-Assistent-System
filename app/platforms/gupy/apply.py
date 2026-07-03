@@ -18,9 +18,8 @@ Fluxo Gupy (fixo em toda Gupy; o que muda por empresa são as PERGUNTAS, que a I
 Travas: pontos ⚠️ só disparam com `allow_real=True` E confirmação (`confirm()`); sem isso, o fluxo
 PREENCHE tudo e PARA para revisão (dry-run). `unknown[]`/falhas também pausam (nunca chuta).
 
-`prepare()`/`submit()` continuam para o fluxo antigo (fila/dashboard). O motor novo é
-`run_auto_apply(page, ...)`, chamado por scripts/auto_apply.py (que é dono do BrowserHarness —
-o plugin nunca abre browser sozinho).
+O motor de candidatura é `run_auto_apply(page, ...)`, chamado por scripts/auto_apply.py e pela UI
+(via `app.services.apply_application`) — donos do BrowserHarness; o plugin nunca abre browser sozinho.
 """
 from __future__ import annotations
 
@@ -29,31 +28,8 @@ import logging
 from ...ai import form_agent
 from ...core.form_extract import EXTRACT_JS, to_questions
 from ...core.form_fill import apply_answers, set_cv_file
-from ...core.schemas import ApplyResult
-from ...core.session import has_session
 
 log = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------- prepare/submit (fluxo antigo)
-def prepare(job, application) -> ApplyResult:
-    if application is None or not application.cv_pdf_path:
-        return ApplyResult(ok=False, message="CV/carta não gerados. Rode tailor_job antes.")
-    if not has_session("gupy"):
-        return ApplyResult(ok=True, submitted=False,
-                           message="Pronto para revisão, mas sem sessão Gupy — rode scripts/login.py gupy.")
-    return ApplyResult(ok=True, submitted=False, message="Pronto para revisão e envio.")
-
-
-def submit(job, application, *, allow_real: bool = False) -> ApplyResult:
-    if not has_session("gupy"):
-        return ApplyResult(ok=False, submitted=False,
-                           message="Sem sessão Gupy. Rode: python scripts/login.py gupy")
-    if not allow_real:
-        return ApplyResult(ok=True, submitted=False,
-                           message="DRY-RUN: envio real desligado (ALLOW_REAL_SUBMIT=false).")
-    return ApplyResult(ok=True, submitted=False,
-                       message="Envio automático: rode 'python scripts/auto_apply.py {}'.".format(job.id))
 
 
 # ---------------------------------------------------------------- helpers de navegação (Gupy)

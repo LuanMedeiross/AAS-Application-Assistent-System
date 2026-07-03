@@ -6,7 +6,8 @@
 ## Screens
 
 ### 1. Dashboard (`/`)
-General overview and starting point.
+General overview and starting point. **Note:** `/` currently **redirects to `/profile`**; the nav is
+Profile · Vagas · Fila. This summary dashboard is a planned view.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ Application Assistant                         [Profile] [Audit]│
@@ -15,10 +16,10 @@ General overview and starting point.
 │                                                                │
 │  Cargos-alvo: red team, appsec, security analyst   [Buscar]   │
 │                                                                │
-│  Fila de aprovação (3)                                         │
-│   • Pentester — Acme            score 88   [Revisar]           │
-│   • AppSec Eng — Beta           score 81   [Revisar]           │
-│   • Security Analyst — Gamma    score 74   [Revisar]           │
+│  Fila de candidaturas (3)                                     │
+│   • Pentester — Acme            score 88   [Candidatar-se]     │
+│   • AppSec Eng — Beta           score 81   [Candidatar-se]     │
+│   • Security Analyst — Gamma    score 74   [Candidatar-se]     │
 │                                                                │
 │  Últimas candidaturas: 12 enviadas · 2 erros                  │
 └──────────────────────────────────────────────────────────────┘
@@ -47,37 +48,40 @@ user to review (it does not save automatically without review).
 List ordered by score, with filters.
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ Vagas    [plataforma ▾] [status ▾] [score min __]             │
+│ Vagas   [Buscar ▸ background]   [Gerar CV em lote: score≥__]  │
 ├──────────────────────────────────────────────────────────────┤
-│ 88  Pentester — Acme         Gupy    [Gerar CV] [Preparar]    │
-│ 81  AppSec Eng — Beta        InHire  [Gerar CV] [Preparar]    │
-│ 74  Security Analyst — Gamma Indeed  tailored   [Preparar]    │
-│ 60  SOC Analyst — Delta      Catho   ranked     [Gerar CV]    │
+│ 88  Pentester — Acme         Gupy    tailored [Ver CV][Regerar]│
+│ 81  AppSec Eng — Beta        InHire  [Gerar currículo]         │
+│ 74  Security Analyst — Gamma Indeed  tailored [Ver CV][Regerar]│
+│ 60  SOC Analyst — Delta      Catho   ranked   [Gerar currículo]│
 └──────────────────────────────────────────────────────────────┘
 ```
-Each row expands (HTMX) to show the description, the score justification, and missing requirements.
+Búsca e geração em lote rodam em **background** (`bgtasks`) — a lista atualiza via polling HTMX.
+Applying happens from the **queue** (§5), not here.
 
-### 4. Resume/cover letter preview (`/jobs/{id}/preview`)
-Shows the generated PDF + cover letter, side by side with the job posting description, before preparing.
+### 4. Generated CV/cover (inline)
+`[Ver CV (PDF)]` (`/jobs/{id}/cv.pdf`) and `[Ver carta]` (`/jobs/{id}/cover`) show what the AI
+produced. After an apply, `[Perguntas]` (`/jobs/{id}/questions`) shows the screening-form Q&A the
+AI answered, for review.
 
-### 5. Review application (approval queue)
+### 5. Apply queue (`/queue`)
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ Revisar: Pentester — Acme (Gupy)                              │
+│ Fila de candidaturas                    [Candidatar em lote]  │
 ├──────────────────────────────────────────────────────────────┤
-│ [PDF do CV]        Respostas do formulário:                   │
-│ [carta]             - Pretensão salarial: [____] (a revisar)  │
-│                     - Disponibilidade: imediata               │
-│                     - Pergunta X: <resposta IA>               │
-│ Campos não resolvidos pela IA: 1   (destaque)                 │
-│                          [Editar] [Aprovar e enviar] [Rejeitar]│
+│ 88 Pentester — Acme (Gupy) [Ver CV][Ver carta][Candidatar-se] │
+│ ⏳ 2 na fila · 1 rodando · ✅ 3 enviada(s)      (polling 3s)    │
 └──────────────────────────────────────────────────────────────┘
 ```
+Apply is **automatic and headless**: `[Candidatar-se]` enqueues one job, `[Candidatar em lote]`
+enqueues all prepared (CV generated, not sent) — **same flow**, max 5 browsers (`applyqueue`).
+An `hx-confirm` dialog is the human gate before the irreversible submit; progress updates via polling.
+After applying, `[Perguntas]` shows what the AI answered; `[Rejeitar]` discards a job.
 
 ## Navigation flow (HTMX)
 
-- Actions (`Buscar`, `Gerar CV`, `Preparar`, `Aprovar`) are HTMX POSTs that **swap fragments**
-  (the job row, the queue card) without reloading the page.
+- Actions (`Buscar`, `Gerar CV`, `Candidatar-se`, `Rejeitar`) are HTMX POSTs that **swap fragments**
+  (the job row, the queue status card) without reloading the page.
 - Long operations (discover/tailor) show a `processando` state in the fragment itself and
   update when they finish (HTMX polling or a direct response).
 - State communicated through **color/typography**: `ok`/`enviada` (neutral-positive), `expirada`/`erro` (highlighted),
@@ -117,4 +121,5 @@ language. Always validate against `schemas.py`.
 ## UI error convention
 - Session failure → banner "session expired, run `login.py <plataforma>`".
 - Circuit breaker tripped → plugin marked as `pausado` with a reason.
-- `unknown` field from the form agent → blocks "Aprovar e enviar" until the user fills it in.
+- `unknown` field the form agent can't answer → the auto-apply flow **stops at `needs_review`**
+  (never guesses); the user reviews via `[Perguntas]` and re-applies.

@@ -1,7 +1,6 @@
 """Manifest do plugin InHire (canal api, por empresa/tenant). Ver docs/PLATFORMS.md."""
 from __future__ import annotations
 
-from .apply import prepare, submit
 from .discovery import discover
 
 MANIFEST = {
@@ -14,4 +13,4 @@ MANIFEST = {
 
 
 def build() -> dict:
-    return {"manifest": MANIFEST, "discover": discover, "prepare": prepare, "submit": submit}
+    return {"manifest": MANIFEST, "discover": discover}

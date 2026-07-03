@@ -1,4 +1,4 @@
-"""Trilha de auditoria — registra ações relevantes (discover/rank/tailor/prepare/submit/...)."""
+"""Trilha de auditoria — registra ações relevantes (discover/rank/tailor/auto_apply/submit/...)."""
 from __future__ import annotations
 
 from sqlmodel import Session

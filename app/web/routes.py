@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from importlib import import_module
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -15,7 +14,7 @@ from ..config import settings
 from ..core import audit
 from ..db import engine, get_session
 from ..models import Application, Job
-from ..services import apply_application, batch_tailor, discover_and_rank, tailor_application
+from ..services import batch_tailor, discover_and_rank, tailor_application
 from .repo import get_or_create_profile, jobs_by_score
 
 # Long UI operations run in the background (bgtasks) so the request never blocks for minutes.
@@ -40,13 +39,6 @@ def _run_tailor(min_score: int) -> dict:
     with Session(engine) as s:
         return batch_tailor(s, min_score)
 
-
-def _apply_module(platform: str):
-    return import_module(f"app.platforms.{platform}.apply")
-
-
-def _application_for(session: Session, job_id: int) -> Application | None:
-    return session.exec(select(Application).where(Application.job_id == job_id)).first()
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -207,18 +199,16 @@ def job_tailor(job_id: int, request: Request, session: Session = Depends(get_ses
 
 @router.post("/jobs/{job_id}/apply", response_class=HTMLResponse)
 def job_apply(job_id: int, request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
-    """Candidata-se via serviço (mesmo processo, abre o navegador logado). Sem shell-out.
-    Gated por ALLOW_REAL_SUBMIT; a UI confirma envio real com hx-confirm antes de disparar."""
+    """Candidatura individual = enfileira 1 job na MESMA fila do lote. O fluxo é idêntico
+    (applyqueue → apply_application headless em background); a única diferença lote↔individual é
+    quantos jobs entram. Devolve o painel de status da fila, que faz polling. A UI confirma o
+    envio com hx-confirm antes de disparar."""
     job = session.get(Job, job_id)
     if job is None:
         return HTMLResponse('<span class="hint">Vaga não encontrada.</span>', status_code=404)
-    try:
-        result = apply_application(session, job)
-    except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
-        return HTMLResponse(f'<span class="hint">❌ Falha ao candidatar: {exc}</span>')
-    icon = {"sent": "✅", "dry_run": "🟡", "needs_review": "⛔", "cancelled": "✋",
-            "error": "❌", "already_applied": "✅", "in_progress": "⏳"}.get(result.get("outcome"), "•")
-    return HTMLResponse(f'<span class="hint">{icon} {result.get("message", "")}</span>')
+    enq = applyqueue.enqueue(job_id)
+    return templates.TemplateResponse(
+        request, "_batch_status.html", _batch_ctx(session, enqueued=1 if enq else 0))
 
 
 @router.get("/jobs/{job_id}/cv.pdf")
@@ -286,37 +276,6 @@ def queue_apply_all(request: Request, session: Session = Depends(get_session)) -
 def queue_apply_status(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     """Polling do status da fila de candidatura em lote."""
     return templates.TemplateResponse(request, "_batch_status.html", _batch_ctx(session))
-
-
-@router.post("/jobs/{job_id}/prepare", response_class=HTMLResponse)
-def job_prepare(job_id: int, session: Session = Depends(get_session)) -> HTMLResponse:
-    job = session.get(Job, job_id)
-    app_row = _application_for(session, job_id)
-    result = _apply_module(job.platform).prepare(job, app_row)
-    if result.ok and job.status == "tailored":
-        job.status = "pending_approval"
-        session.add(job)
-    audit.log(session, "prepare", platform=job.platform, job_id=job_id,
-              detail={"message": result.message})
-    return HTMLResponse(f'<span class="hint">{result.message}</span>')
-
-
-@router.post("/jobs/{job_id}/approve", response_class=HTMLResponse)
-def job_approve(job_id: int, session: Session = Depends(get_session)) -> HTMLResponse:
-    job = session.get(Job, job_id)
-    app_row = _application_for(session, job_id)
-    result = _apply_module(job.platform).submit(job, app_row, allow_real=settings.allow_real_submit)
-    if result.submitted:
-        app_row.result, app_row.submitted_at, job.status = "sent", datetime.utcnow(), "applied"
-    else:
-        app_row.result = "dry_run" if result.ok else "error"
-        app_row.error = "" if result.ok else result.message
-        job.status = "approved" if result.ok else job.status
-    session.add(app_row)
-    session.add(job)
-    audit.log(session, "submit", platform=job.platform, job_id=job_id,
-              detail={"message": result.message, "submitted": result.submitted})
-    return HTMLResponse(f'<span class="hint">{result.message}</span>')
 
 
 @router.post("/jobs/{job_id}/reject", response_class=HTMLResponse)

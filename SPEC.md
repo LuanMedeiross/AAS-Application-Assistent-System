@@ -14,7 +14,7 @@
 | RF-05 | **Generate a tailored CV + cover letter** per job, **in the language of the job description**. |
 | RF-06 | **Render the CV/cover letter as a PDF** from a template. |
 | RF-07 | **Fill the application** through the platform's channel (`api`/`browser`/`email`) and **stop before the final submission**. |
-| RF-08 | **Approval queue**: the user reviews and approves/rejects each application before submission. |
+| RF-08 | **Human gate before submit**: each application requires the user's confirmation (confirm dialog) before the irreversible submit; manual mode fills and stops for review. |
 | RF-09 | **Log** each submitted application (Application) and each relevant action (AuditLog). |
 | RF-10 | **Manage sessions** per platform (manual login → `storage_state` saved and reused). |
 | RF-11 | **Trigger captcha** (2Captcha) when the `browser` channel is blocked. |
@@ -50,13 +50,13 @@
 - `id`, `platform` (gupy/inhire/indeed/...), `external_id`, `url`
 - `title`, `company`, `location`, `description`, `raw` (JSON of the original payload)
 - `score` (0–100, nullable), `score_reason` (nullable)
-- `status` (`discovered`/`ranked`/`tailored`/`pending_approval`/`approved`/`applied`/`rejected`/`failed`)
+- `status` (`discovered`/`ranked`/`tailored`/`pending_approval`/`applied`/`rejected`/`failed`)
 - `discovered_at`
 
 **Application** (application)
 - `id`, `job_id` (FK), `cv_pdf_path`, `cover_letter_path`
 - `cv_json` (generated JSON), `language` (language used)
-- `submitted_at` (nullable), `result` (`sent`/`error`/`skipped`), `error` (nullable)
+- `submitted_at` (nullable), `result` (`sent`/`error`/`dry_run`), `error` (nullable)
 
 **PlatformSession** (per-platform session)
 - `id`, `platform`, `storage_state_path`, `valid` (bool), `last_login_at`
@@ -72,8 +72,10 @@ Each plugin = an `app/platforms/<id>/` folder with:
   `base_url`/endpoints, expected `captcha`, lazy `build()`. Registered in `platforms/__init__.py`.
 - **`discovery.py`** — `discover(keywords, ctx_or_session) -> list[JobPosting]`
   (absent on the `email` channel).
-- **`apply.py`** — `apply(job, application, ctx_or_session, *, dry_run) -> ApplyResult`.
-  Stops before the final submission when in manual mode.
+- **`apply.py`** — `run_auto_apply(page, *, job, application, master_cv, extras, cover, allow_real,
+  confirm, log_fn) -> dict` (browser channel): fills the form and submits. Irreversible steps only
+  fire with `allow_real=True` **and** `confirm()`; otherwise it fills everything and stops for review.
+  The harness owns the browser — the plugin never launches one. Discovery-only plugins may omit apply.
 
 **Rules (validated by `check_contracts.py`):** a plugin does not call `chromium.launch`/`sync_playwright`,
 does not import `web/`, uses the normalized schemas, and the `discover`/`apply` signature matches the channel.
@@ -114,18 +116,25 @@ does not import `web/`, uses the normalized schemas, and the `discover`/`apply` 
 
 | Method | Route | Function |
 |---|---|---|
-| GET | `/` | Dashboard (summary: jobs, approval queue, plugin status). |
-| GET/POST | `/profile` | View/edit Profile; import-from-LinkedIn action. |
-| POST | `/discover` | Trigger discovery (platforms + keywords). |
-| GET | `/jobs` | List jobs (sorted by score), filters by status/platform. |
-| POST | `/jobs/{id}/rank` | Rank (or re-rank) a job. |
+| GET | `/` | Redirects to `/profile`. |
+| GET/POST | `/profile` | View/edit Profile (contact, prefs, RG/CPF, FAQ). |
+| POST | `/profile/suggest-seniority` | AI suggests seniority from the master CV. |
+| GET | `/jobs` | List jobs (sorted by score). |
+| POST | `/jobs/search` | Discover + rank (Gupy) — **background** (`bgtasks`), UI polls. |
+| POST | `/jobs/tailor-all` | Batch-generate CV/cover (jobs ≥ min score) — **background** + polling. |
+| GET | `/jobs/bg-status` | Poll a background task (`?task=search\|tailor`). |
 | POST | `/jobs/{id}/tailor` | Generate CV/cover letter + PDF for the job. |
-| GET | `/jobs/{id}/preview` | Preview the CV/cover letter (PDF). |
-| POST | `/jobs/{id}/prepare` | Fill the application (dry-run → approval queue). |
-| POST | `/jobs/{id}/approve` | Approve and submit. |
-| POST | `/jobs/{id}/reject` | Reject/discard. |
-| GET | `/sessions` | Per-platform session status. |
-| GET | `/audit` | Audit trail. |
+| GET | `/jobs/{id}/cv.pdf` | Download the tailored CV PDF. |
+| GET | `/jobs/{id}/cover` | View the cover letter. |
+| GET | `/jobs/{id}/questions` | View the AI's screening-form Q&A. |
+| POST | `/jobs/{id}/apply` | Enqueue this job into the apply queue (headless, background). |
+| POST | `/jobs/{id}/reject` | Reject/discard the job. |
+| GET | `/queue` | Apply queue view + batch status. |
+| POST | `/queue/apply-all` | Enqueue all prepared (CV generated, not sent) — max 5 browsers. |
+| GET | `/queue/apply-status` | Poll the batch apply queue status. |
+
+> Apply is fully automatic via the plugin's `run_auto_apply` (individual = enqueue 1, batch = enqueue N —
+> same flow). The old manual `prepare`/`approve` routes were removed.
 
 ## 7. Flows per channel
 

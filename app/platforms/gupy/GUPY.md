@@ -261,7 +261,7 @@ FAQ), editable at `/profile`.
 ## 9. Files
 
 - `discovery.py` — search + filters (recency/open/type/model).
-- `apply.py` — `run_auto_apply()` (browser flow) + `prepare()/submit()` (old queue flow).
+- `apply.py` — `run_auto_apply()` (browser flow). The old `prepare()/submit()` queue helpers were removed.
 - `manifest.py` — declarative (id/name/channel/endpoints/build).
 - Shared core: `core/form_extract.py` (DOM→questions), `core/form_fill.py` (fill),
   `ai/form_agent.py` (answer), `core/browser.py` (Chromium CDP), `core/session.py` (session).

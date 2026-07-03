@@ -89,15 +89,17 @@ curriculum/          # FONTE do master_cv: curriculo.pdf (export LinkedIn) + cur
 
 ## Data flow (end to end)
 
-1. **Discover** → `routes /discover` calls each enabled plugin's `discovery.discover()` →
-   writes `Job` (status `discovered`).
-2. **Rank** → `ranker.score()` → updates `Job.score`/`reason` (status `ranked`).
+1. **Discover** → `POST /jobs/search` runs the platform's `discovery.discover()` in the background
+   (`bgtasks`) → writes `Job` (status `discovered`).
+2. **Rank** → `ranker.score()` (same background task) → updates `Job.score`/`reason` (status `ranked`).
 3. **Tailor** → `tailor.generate()` reads the description + Profile.master_cv → JSON resume/cover letter →
-   `pdf.render()` generates the PDF (status `tailored`).
-4. **Prepare** → `apply.apply(dry_run=True)` builds the payload/fills the form without submitting →
-   `Application` in `pending_approval`.
-5. **Approve** → `apply.apply(dry_run=False)` submits → `Application.result=sent`, `Job.status=applied`,
-   `AuditLog`.
+   `pdf.render()` generates the PDF (status `tailored`). Batch via `POST /jobs/tailor-all` (`bgtasks`).
+4. **Apply** → `POST /jobs/{id}/apply` (individual) or `POST /queue/apply-all` (batch) enqueue into
+   `applyqueue` → `services.apply_application()` opens the BrowserHarness (headless) and runs the
+   plugin's `run_auto_apply()` (fills + submits, gated by the UI confirm dialog). An in-process claim
+   (`_inflight`) prevents concurrent double-submit. On success → `Application.result=sent`,
+   `Job.status=applied`, `AuditLog`. If the flow can't finish it stops at `needs_review` →
+   `Job.status=pending_approval` (resume by re-triggering apply).
 
 ## Technical decisions and trade-offs
 

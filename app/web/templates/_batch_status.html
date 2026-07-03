@@ -11,9 +11,11 @@
       {% if active %} ⏳{% endif %}
     </div>
     {% for r in rows %}
+      {% set icon = {'queued':'•','running':'⏳','failed':'❌'}.get(r.state)
+           or {'sent':'✅','already_applied':'✅','dry_run':'🟡','needs_review':'⛔',
+                'in_progress':'⏳','error':'❌'}.get(r.outcome, '✅') %}
       <div class="hint" style="font-size:12px">
-        {{ {'queued':'•','running':'⏳','done':'✅','failed':'❌'}.get(r.state, '•') }}
-        [{{ r.job_id }}] {{ r.title[:44] }} — {{ r.state }}{% if r.message %}: {{ r.message }}{% endif %}
+        {{ icon }} [{{ r.job_id }}] {{ r.title[:44] }} — {{ r.outcome or r.state }}{% if r.message %}: {{ r.message }}{% endif %}
       </div>
     {% endfor %}
   {% endif %}

@@ -1,7 +1,6 @@
 """Manifest declarativo do plugin Gupy (canal api). Ver docs/PLATFORMS.md."""
 from __future__ import annotations
 
-from .apply import prepare, submit
 from .discovery import discover
 
 MANIFEST = {
@@ -18,4 +17,4 @@ MANIFEST = {
 
 def build() -> dict:
     """Monta o plugin (lazy). Retorna o spec consumido pelo harness/registry."""
-    return {"manifest": MANIFEST, "discover": discover, "prepare": prepare, "submit": submit}
+    return {"manifest": MANIFEST, "discover": discover}

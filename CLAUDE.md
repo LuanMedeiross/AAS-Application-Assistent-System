@@ -60,7 +60,9 @@ Each platform = `app/platforms/<id>/` with:
 - **`manifest.py`** — declarative: `id`, `name`, `channel`, `base_url`/endpoints, expected
   captcha, lazy `build()`. **Register in the registry** `platforms/__init__.py` (static imports).
 - **`discovery.py`** — `discover(keywords, ctx|session) -> list[JobPosting]` (absent in the `email` channel).
-- **`apply.py`** — `apply(job, application, ctx|session, dry_run) -> ApplyResult`.
+- **`apply.py`** — `run_auto_apply(page, *, job, application, master_cv, extras, cover, allow_real,
+  confirm, log_fn) -> dict` (browser channel): fills + submits; irreversible steps gated by
+  `allow_real` + `confirm()`. Harness owns the browser. Discovery-only plugins may omit apply.
 
 Normalized schemas (`JobPosting`, `ApplicationForm`, `FormField`, `ApplyResult`) in
 `app/core/schemas.py`. → Full detail of the contract and channels: **`SPEC.md` §4** and
