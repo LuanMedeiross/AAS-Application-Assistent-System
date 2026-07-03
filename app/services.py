@@ -6,6 +6,7 @@ Aqui vive a orquestração que combina IA + PDF + DB; a lógica pura fica em `ai
 from __future__ import annotations
 
 import logging
+import threading
 from datetime import datetime
 from importlib import import_module
 from pathlib import Path
@@ -21,6 +22,14 @@ from .pdf.render import render_cv_pdf
 from .web.repo import get_or_create_profile
 
 log = logging.getLogger(__name__)
+
+# Atomic apply claim: job_ids with a submission in flight RIGHT NOW. Both apply entry points
+# (single "Candidatar-se" and the batch queue) funnel through `apply_application`, so this
+# in-process lock+set is the one gate that prevents two concurrent applies to the same job —
+# closing the TOCTOU window that `result == "sent"` alone leaves open (it only commits at the very
+# end of the ~30s browser flow). Single-process app → in-process guard is sufficient.
+_inflight_lock = threading.Lock()
+_inflight: set[int] = set()
 
 
 def _contact(profile: Profile) -> dict:
@@ -162,43 +171,63 @@ def apply_application(
         return {"outcome": "error",
                 "message": f"Plataforma '{job.platform}' ainda não tem candidatura automática."}
 
-    profile = get_or_create_profile(session)
-    cover = ""
-    if app_row.cover_letter_path and Path(app_row.cover_letter_path).exists():
-        cover = Path(app_row.cover_letter_path).read_text(encoding="utf-8")
-    # UI = produção: envio real por padrão (não usa ALLOW_REAL_SUBMIT). O diálogo da UI é a trava.
-    allow_real = True if allow_real is None else allow_real
+    # Atomically claim this job before opening the browser. If a rival apply already holds it,
+    # bail immediately (do NOT open a second browser / re-submit). The claim is released in the
+    # finally below, only after the winner has committed its result.
+    with _inflight_lock:
+        if job.id in _inflight:
+            return {"outcome": "in_progress",
+                    "message": "Já existe uma candidatura em andamento para esta vaga."}
+        _inflight.add(job.id)
+    try:
+        # Re-check under the claim: a rival may have finished + committed "sent" in the window
+        # between our earlier read and winning the claim. refresh() re-reads from the DB (the rival
+        # ran in a different session), so a stale not-sent value can't slip a duplicate through.
+        session.refresh(app_row)
+        if app_row.result == "sent":
+            return {"outcome": "already_applied",
+                    "message": "Candidatura já enviada anteriormente (não reabri o navegador)."}
 
-    with BrowserHarness(headless=headless) as h:
-        ctx = h.new_context(job.platform)
-        page = ctx.new_page()
-        try:
-            result = run_auto_apply(
-                page, job=job, application=app_row, master_cv=profile.to_master_cv(),
-                extras=profile.to_application_extras(), cover=cover,
-                allow_real=allow_real, confirm=lambda _prompt: True, log_fn=log.info,
-            )
-        finally:
+        profile = get_or_create_profile(session)
+        cover = ""
+        if app_row.cover_letter_path and Path(app_row.cover_letter_path).exists():
+            cover = Path(app_row.cover_letter_path).read_text(encoding="utf-8")
+        # UI = produção: envio real por padrão (não usa ALLOW_REAL_SUBMIT). O diálogo da UI é a trava.
+        allow_real = True if allow_real is None else allow_real
+
+        with BrowserHarness(headless=headless) as h:
+            ctx = h.new_context(job.platform)
+            page = ctx.new_page()
             try:
-                ctx.close()
-            except Exception:  # noqa: BLE001
-                pass
+                result = run_auto_apply(
+                    page, job=job, application=app_row, master_cv=profile.to_master_cv(),
+                    extras=profile.to_application_extras(), cover=cover,
+                    allow_real=allow_real, confirm=lambda _prompt: True, log_fn=log.info,
+                )
+            finally:
+                try:
+                    ctx.close()
+                except Exception:  # noqa: BLE001
+                    pass
 
-    outcome = result.get("outcome")
-    if outcome in ("sent", "already_applied"):
-        app_row.result, app_row.submitted_at, job.status = "sent", datetime.utcnow(), "applied"
-    elif outcome == "needs_review":
-        job.status = "pending_approval"
-    elif outcome == "dry_run":
-        app_row.result = "dry_run"
-    elif outcome == "error":
-        app_row.result, app_row.error = "error", result.get("message", "")
-    # Persist the AI's Q&A whenever the form flow actually ran (any outcome), for user review.
-    if result.get("qa"):
-        app_row.form_qa = result["qa"]
-    session.add(app_row)
-    session.add(job)
-    audit.log(session, "auto_apply", platform=job.platform, job_id=job.id,
-              detail={"outcome": outcome, "message": result.get("message", ""), "via": "ui"})
-    session.commit()
-    return result
+        outcome = result.get("outcome")
+        if outcome in ("sent", "already_applied"):
+            app_row.result, app_row.submitted_at, job.status = "sent", datetime.utcnow(), "applied"
+        elif outcome == "needs_review":
+            job.status = "pending_approval"
+        elif outcome == "dry_run":
+            app_row.result = "dry_run"
+        elif outcome == "error":
+            app_row.result, app_row.error = "error", result.get("message", "")
+        # Persist the AI's Q&A whenever the form flow actually ran (any outcome), for user review.
+        if result.get("qa"):
+            app_row.form_qa = result["qa"]
+        session.add(app_row)
+        session.add(job)
+        audit.log(session, "auto_apply", platform=job.platform, job_id=job.id,
+                  detail={"outcome": outcome, "message": result.get("message", ""), "via": "ui"})
+        session.commit()
+        return result
+    finally:
+        with _inflight_lock:
+            _inflight.discard(job.id)

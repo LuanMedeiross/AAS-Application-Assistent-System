@@ -216,8 +216,8 @@ def job_apply(job_id: int, request: Request, session: Session = Depends(get_sess
         result = apply_application(session, job)
     except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
         return HTMLResponse(f'<span class="hint">❌ Falha ao candidatar: {exc}</span>')
-    icon = {"sent": "✅", "dry_run": "🟡", "needs_review": "⛔",
-            "cancelled": "✋", "error": "❌"}.get(result.get("outcome"), "•")
+    icon = {"sent": "✅", "dry_run": "🟡", "needs_review": "⛔", "cancelled": "✋",
+            "error": "❌", "already_applied": "✅", "in_progress": "⏳"}.get(result.get("outcome"), "•")
     return HTMLResponse(f'<span class="hint">{icon} {result.get("message", "")}</span>')
 
 
