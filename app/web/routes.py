@@ -1,6 +1,7 @@
 """Rotas do dashboard (Fase 1: Profile). HTMX + Jinja2."""
 from __future__ import annotations
 
+import html
 from datetime import datetime
 from pathlib import Path
 
@@ -194,7 +195,7 @@ def job_tailor(job_id: int, request: Request, session: Session = Depends(get_ses
         app_row, _ = tailor_application(session, job)
     except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
         return HTMLResponse(
-            f'<span class="hint">Falha ao gerar (verifique LLM_API_KEY): {exc}</span>'
+            f'<span class="hint">Falha ao gerar (verifique LLM_API_KEY): {html.escape(str(exc))}</span>'
         )
     audit.log(session, "tailor", platform=job.platform, job_id=job.id,
               detail={"language": app_row.language})
@@ -232,7 +233,8 @@ def job_cover(job_id: int, request: Request, session: Session = Depends(get_sess
     app_row = session.exec(select(Application).where(Application.job_id == job_id)).first()
     if not app_row or not app_row.cover_letter_path or not Path(app_row.cover_letter_path).exists():
         return HTMLResponse('<span class="hint">Carta ainda não gerada.</span>')
-    text = Path(app_row.cover_letter_path).read_text(encoding="utf-8")
+    # LLM-generated text — escape before raw HTML interpolation (prompt-injection XSS defense).
+    text = html.escape(Path(app_row.cover_letter_path).read_text(encoding="utf-8"))
     return HTMLResponse(f'<div style="white-space:pre-wrap; margin-top:8px">{text}</div>')
 
 
@@ -311,4 +313,5 @@ def suggest_seniority(request: Request, session: Session = Depends(get_session))
         msg = f"Sugestão: {result.seniority} — {result.reason}"
     except Exception as exc:  # noqa: BLE001 — feedback amigável na UI
         msg = f"Não foi possível sugerir (verifique LLM_API_KEY): {exc}"
-    return HTMLResponse(f'<span class="hint">{msg}</span>')
+    # msg carries LLM output (result.reason) / exception text — escape before raw HTML.
+    return HTMLResponse(f'<span class="hint">{html.escape(msg)}</span>')
