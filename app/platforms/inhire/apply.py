@@ -41,6 +41,11 @@ log = logging.getLogger(__name__)
 # belongs in phoneCountry), so we fill the NATIONAL number and leave the country code to the dropdown.
 _LOCATION_KEYS = {"country", "phoneCountry", "district", "districtBr", "phone"}
 
+# `salaryExpectation` is a currency-MASKED field: page.fill("4000") lands as "R$ 4,00" (a real R$4
+# application bug we hit live). Typing the digits sequentially builds "R$ 4.000,00" correctly. Handled
+# specially and excluded from the generic AI fill. Union used to filter the generic questions.
+_SKIP_GENERIC_KEYS = _LOCATION_KEYS | {"salaryExpectation"}
+
 
 def _national_phone(phone: str) -> str:
     """DDD + number as DIGITS ONLY: drop the "+<code>" country prefix (that belongs in phoneCountry)
@@ -250,6 +255,32 @@ def _fill_location(page, *, master_cv, extras, job_d, cover, log_fn) -> tuple[li
     return filled, ["city"]
 
 
+def _fill_salary(page, extras, log_fn) -> list:
+    """Fill the currency-masked salary field by TYPING digits (page.fill corrupts the mask → R$4,00).
+    Value comes from `extras` (the profile's salary expectation). Returns filled records (or [])."""
+    loc = page.locator('#salaryExpectation, input[name="salaryExpectation"]').first
+    try:
+        if not loc.count():
+            return []
+    except Exception:  # noqa: BLE001
+        return []
+    raw = next((str(v) for k, v in (extras or {}).items() if "salar" in k.lower()), "")
+    digits = re.sub(r"\D", "", raw)
+    if not digits:
+        return []
+    try:
+        loc.click()
+        loc.press("Control+a")
+        loc.press("Delete")
+        loc.press_sequentially(digits, delay=30)
+        page.wait_for_timeout(200)
+        log_fn(f"      → salaryExpectation = 'R$ {digits}' (digitado; valor={loc.input_value()!r})")
+        return [{"step": "salary", "key": "salaryExpectation", "value": loc.input_value()}]
+    except Exception as e:  # noqa: BLE001
+        log.warning("salary fill: %s", e)
+        return []
+
+
 def _sent_confirmation(page, timeout_ms: int = 20000) -> bool:
     """Wait for a post-submit success signal. ⚠️ HEURISTIC (markers unconfirmed) — we wait for a
     success marker OR the form to disappear. A started-but-unconfirmed submit is a FAILURE, not a
@@ -311,6 +342,20 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                        "answer": value, "confidence": confidence, "status": status})
         return plan.unknown, failed
 
+    # Network truth for the submit: the SPA POSTs to /job-talents/.../talents and a 2xx means the
+    # application was really created. We watch for it so we NEVER report a false 'error' when the
+    # submit actually succeeded (the on-page confirmation copy is unreliable/absent).
+    talent_submitted = {"ok": False}
+
+    def _on_response(r):
+        try:
+            if "/job-talents/" in r.url and r.request.method == "POST" and 200 <= r.status < 300:
+                talent_submitted["ok"] = True
+        except Exception:  # noqa: BLE001
+            pass
+
+    page.on("response", _on_response)
+
     page.goto(job.url, wait_until="domcontentloaded")
     _settle(page)
     if not _wait_form(page):
@@ -325,8 +370,8 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                     "message": "candidatura já aparece como enviada."}
 
         snap = page.evaluate(EXTRACT_JS, _FORM_SEL)
-        # Location widgets are handled separately (see _LOCATION_KEYS) — exclude them from the AI fill.
-        questions = [q for q in to_questions(snap) if q.key not in _LOCATION_KEYS]
+        # Location + masked salary are handled separately — exclude them from the generic AI fill.
+        questions = [q for q in to_questions(snap) if q.key not in _SKIP_GENERIC_KEYS]
         log_fn(f"\n[{step}] campos da etapa ({len(questions)}):")
         for q in questions:
             log_fn(f"      • [{q.kind}] req={q.required} :: {q.prompt[:80]!r}")
@@ -338,6 +383,8 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
                                                 job_d=job_d, cover=cover, log_fn=log_fn)
         filled.extend(loc_filled)
         failed = list(failed) + loc_failed
+        # Masked salary field (type digits, never fill()).
+        filled.extend(_fill_salary(page, extras, log_fn))
 
         # Upload the tailored CV into the file input (input[name=resume], hidden but set_input_files
         # works). Manifest is cv:"file" → application.cv_pdf_path is rendered and ready.
@@ -383,13 +430,18 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             except Exception as e:  # noqa: BLE001
                 return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
                         "message": f"falha ao clicar no envio: {e}"}
-            # ⚠️ Do NOT report 'sent' just for clicking — wait for the confirmation (anti-false-positive).
-            if _sent_confirmation(page):
+            # ⚠️ Do NOT report 'sent' just for clicking — CONFIRM. Source of truth: a 2xx on the
+            # POST /job-talents/ (network). Poll for it (also accept an on-page marker as fallback).
+            for _ in range(40):  # ~20s
+                if talent_submitted["ok"]:
+                    break
+                page.wait_for_timeout(500)
+            if talent_submitted["ok"] or _sent_confirmation(page, timeout_ms=3000):
                 return {"outcome": "sent", "filled": filled, "unknown": all_unknown, "qa": qa,
-                        "message": "candidatura enviada (confirmação heurística — validar marcador real)."}
+                        "message": "candidatura enviada (POST /job-talents/ confirmado)."}
             return {"outcome": "error", "filled": filled, "unknown": all_unknown, "qa": qa,
-                    "message": "cliquei em 'Continuar inscrição' mas não vi confirmação — envio pode "
-                               "ter ficado INCOMPLETO (não marquei como enviada)."}
+                    "message": "cliquei em 'Continuar inscrição' mas não vi confirmação do /job-talents/ — "
+                               "envio pode ter ficado INCOMPLETO (não marquei como enviada)."}
 
         # Neither advance nor submit is enabled → a required field is still unfilled. If we know which
         # ones the AI couldn't answer/fill, surface them (needs_review); otherwise it's a layout/other

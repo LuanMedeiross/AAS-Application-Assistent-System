@@ -191,9 +191,20 @@ invalidates it and keeps "Avançar" disabled. React validates async → poll the
 2. ✅ **Base identity always asked** (name/email/phone are inline step-1 fields). No email OTP seen on load.
 3. ✅ **No Typeform on the sampled job** — custom questions are inline radios; the 2-step wizard covers it.
    (Still verify per job: a job with a subscription Typeform may add a step — handle when we hit one.)
-4. ❌ **Confirmation signal after submit — STILL TO CAPTURE** (needs a real supervised dry-run/submit; we
-   did NOT submit). Gate `sent` on the post-submit success screen, not on clicking "Continuar inscrição".
-5. ❌ **Exact `POST /job-talents/` payload — STILL TO CAPTURE** (devtools during a supervised submit).
+4. ✅ **Confirmation signal = NETWORK, not page text.** The on-page copy is unreliable; the truth is a
+   **2xx on `POST /job-talents/public/{jobId}/talents`** (returns `201` with `{id, talentId, status:"active",
+   stage:{phase:{name:"Candidatura"}}}`). `apply.py` watches for that response to gate `sent` (poll ~20s).
+5. ✅ **`POST /job-talents/public/{jobId}/talents` payload** (captured live):
+   ```json
+   {"email","name","phone":"+55DDDNUMBER","linkedinUsername",
+    "targetSalary":{"currency":"BRL","value":<int reais>,"type":"CLT"},
+    "files":[{"fileCategory":"resumes","id","name","key":"resumes/<tenant>/<file>*<uuid>.pdf"}],
+    "diversityFormQuestionResponses":[{question:{...},answer...}]}
+   ```
+   CV upload is a prior `POST /files/public/signature/` (`{fileCategory:"resumes","name":<pdf>}`) → `201`.
+   ⚠️ **Salary is a currency-MASKED field:** `page.fill("4000")` lands as `R$ 4,00` → payload `value:4`
+   (a real R$4 application bug we hit live). Fix: TYPE the digits (`press_sequentially`) → `R$ 4.000,00`.
+   `apply.py::_fill_salary` handles it. See §3 note.
 
 ### 5.1 Automated-probe findings (2026-07-10, anonymous Chromium + stealth)
 - ✅ **SPA loads anonymous** at `https://<tenant>.inhire.app/...`: shell hydrates
