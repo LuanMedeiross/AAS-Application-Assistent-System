@@ -59,7 +59,7 @@ def discover(
     *,
     tenants: list[str] | None = None,
     workplaces: frozenset = DEFAULT_WORKPLACES,
-    max_age_days: int = 28,
+    max_age_days: int = 45,  # InHire mantém vaga aberta mais tempo que a Gupy (lá o default é 28)
     check_open: bool = True,
     max_detail: int = 40,
 ) -> list[JobPosting]:
