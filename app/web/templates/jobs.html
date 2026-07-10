@@ -11,6 +11,10 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input name="keywords" value="{{ default_keywords }}" placeholder="pentest, appsec, blue team…">
     </label>
+    <select name="platform" title="Plataforma" style="flex:none;width:auto;min-width:116px;height:40px">
+      <option value="">Todas</option>
+      {% for p in platforms %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+    </select>
     <button type="submit">Buscar</button>
   </form>
   <form hx-post="/jobs/tailor-all" hx-target="#joblist" hx-swap="innerHTML"

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -15,8 +16,11 @@ from ..config import settings
 from ..core import audit
 from ..db import engine, get_session
 from ..models import Application, Job
+from ..platforms import REGISTRY
 from ..services import batch_tailor, discover_and_rank, tailor_application
 from .repo import get_or_create_profile, jobs_by_score
+
+log = logging.getLogger(__name__)
 
 # Long UI operations run in the background (bgtasks) so the request never blocks for minutes.
 # Labels shown by the polling fragment while each task runs.
@@ -26,13 +30,26 @@ _BG_LABELS = {
 }
 
 
-def _run_search(keywords: str) -> dict:
-    """Background body of /jobs/search — opens its own Session (worker thread)."""
+def _run_search(keywords: str, platform: str = "") -> dict:
+    """Background body of /jobs/search — opens its own Session (worker thread).
+
+    `platform` vazio (ou não reconhecido) = TODAS as plataformas do registry; senão, só aquela.
+    Estatísticas são somadas entre plataformas (mesmo formato que o template espera)."""
     with Session(engine) as s:
         profile = get_or_create_profile(s)
         kws = [k.strip() for k in keywords.split(",") if k.strip()] \
             or profile.target_roles or ["segurança da informação"]
-        return discover_and_rank(s, "gupy", kws, profile)
+        platform = (platform or "").strip().lower()
+        targets = [platform] if platform in REGISTRY else list(REGISTRY)
+        agg = {"found": 0, "discarded": 0, "ranked": 0, "kept": 0}
+        for plat in targets:
+            try:
+                r = discover_and_rank(s, plat, kws, profile)
+                for k in agg:
+                    agg[k] += r.get(k, 0)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("busca falhou (%s): %s", plat, exc)
+        return agg
 
 
 def _run_tailor(min_score: int) -> dict:
@@ -140,16 +157,19 @@ def jobs_page(request: Request, session: Session = Depends(get_session)) -> HTML
     default_kw = ", ".join(profile.target_roles) if profile.target_roles else \
         "pentest, appsec, red team, segurança da informação"
     ctx = {"jobs": jobs, "apps": apps, "allow_real": settings.allow_real_submit,
-           "default_keywords": default_kw, "summary": summary}
+           "default_keywords": default_kw, "summary": summary,
+           "platforms": [{"id": m["id"], "name": m["name"]} for m in REGISTRY.values()]}
     ctx.update(_batch_ctx(session))  # painel da fila p/ o "Candidatar-se" dos cards (mesma infra do /queue)
     return templates.TemplateResponse(request, "jobs.html", ctx)
 
 
 @router.post("/jobs/search", response_class=HTMLResponse)
-def jobs_search(request: Request, keywords: str = Form("")) -> HTMLResponse:
+def jobs_search(request: Request, keywords: str = Form(""),
+                platform: str = Form("")) -> HTMLResponse:
     """Dispara descoberta + ranqueio em BACKGROUND (não trava a request) e devolve um fragmento
-    que faz polling do progresso. Reusa o padrão da fila de candidatura (bgtasks)."""
-    bgtasks.start("search", lambda: _run_search(keywords))
+    que faz polling do progresso. Reusa o padrão da fila de candidatura (bgtasks).
+    `platform` vem do seletor da UI (vazio = todas)."""
+    bgtasks.start("search", lambda: _run_search(keywords, platform))
     return templates.TemplateResponse(
         request, "_bg_running.html", {"task": "search", "label": _BG_LABELS["search"]})
 
