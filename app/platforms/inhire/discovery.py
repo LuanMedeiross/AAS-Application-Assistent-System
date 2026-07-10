@@ -14,6 +14,7 @@ import html
 import logging
 import re
 import threading
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
@@ -46,6 +47,20 @@ DEFAULT_WORKPLACES = frozenset({"remote", "hybrid"})  # priorizar remoto (+ híb
 def _norm_workplace(wt: str | None) -> str:
     """Normaliza o workplaceType da InHire ("Remote"/"Hybrid"/"On-site") para o padrão minúsculo."""
     return (wt or "").strip().lower().replace(" ", "-")
+
+
+def _slugify(text: str) -> str:
+    """Slug do título no formato da career page da InHire (`analista-de-seguranca-ofensiva`):
+    minúsculas, acentos removidos (NFKD), não-alfanumérico vira hífen, hífens colapsados/aparados.
+    A rota pública é `/vagas/{jobId}/{slug}` — SEM o slug a SPA não carrega a vaga (tela preta)."""
+    text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def _job_url(tenant: str, jid: str, title: str) -> str:
+    slug = _slugify(title)
+    base = f"https://{tenant}.inhire.app/vagas/{jid}"
+    return f"{base}/{slug}" if slug else base
 
 
 def _is_recent(detail: dict, max_age_days: int) -> bool:
@@ -122,9 +137,13 @@ def _scan_tenant(tenant, kws, workplaces, max_age_days, check_open, max_detail, 
             "lastPublishedAt": detail.get("lastPublishedAt"),
             "settings": {k: v for k, v in _settings.items() if k != "email"},
         }
+        # The API's `link` points at `<tenant>.inhire.com.br`, a DEAD domain (DNS no longer resolves);
+        # the live career SPA is at `<tenant>.inhire.app/vagas/{jobId}/{titleSlug}`. Two gotchas we hit:
+        # (1) trust the tenant+jobId, NOT the stale `link`; (2) the title SLUG segment is REQUIRED — a
+        # bare `/vagas/{jobId}` renders a black screen (the SPA never fetches the job). See INHIRE.md §1.
         out.append(JobPosting(
             platform="inhire", external_id=jid,
-            url=it.get("link", ""),
+            url=_job_url(tenant, jid, it.get("displayName", "")),
             title=it.get("displayName", ""),
             company=company,
             location=detail.get("location", ""),

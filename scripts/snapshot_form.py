@@ -1,24 +1,29 @@
 """Snapshot INTERATIVO do formulário de candidatura (canal browser).
 
-Ferramenta de desenvolvimento (não envia nada). Abre a vaga JÁ LOGADA e, a cada ENTER, captura
-o DOM da tela atual: HTML bruto + extração estruturada dos controles de formulário (inputs,
-selects, textareas, radios/checkboxes, perguntas de triagem). Serve para mapear o formulário
-real da Gupy antes de escrever o auto-apply — o form é multi-etapas e dinâmico, então capturamos
+Ferramenta de desenvolvimento (não envia nada). Abre a vaga e, a cada ENTER, captura o DOM da
+tela atual: HTML bruto + extração estruturada dos controles de formulário (inputs, selects,
+textareas, radios/checkboxes, perguntas de triagem). Serve para mapear o formulário real de uma
+plataforma antes de escrever o auto-apply — o form é multi-etapas e dinâmico, então capturamos
 etapa por etapa.
+
+Sessão: por padrão abre a página JÁ LOGADA (sessão salva da plataforma). Plataformas cujo apply é
+ANÔNIMO (manifest `anonymous_apply=True`, ex.: InHire) dispensam login — o gate de sessão é pulado
+e o contexto sobe só com stealth. Use `--anon` para forçar o modo anônimo em qualquer plataforma.
 
 Uso:
     python scripts/snapshot_form.py <job_id>
     python scripts/snapshot_form.py --url https://empresa.gupy.io/jobs/123  [--platform gupy]
+    python scripts/snapshot_form.py --url https://clavis.inhire.com.br/vagas/<id> --platform inhire
 
 Fluxo:
-    1. Abre a página logada (sessão salva da plataforma).
+    1. Abre a página (logada, ou anônima+stealth para plataformas anônimas).
     2. Você clica "Candidatar-se" / navega pelas etapas NA JANELA.
     3. Pressione ENTER no terminal para capturar a tela atual (repita por etapa).
     4. Digite 'q' + ENTER para sair.
 
-Saídas em: <temp do SO>/application-assistant/gupy_form/  (step_NN.html + step_NN.json +
+Saídas em: <temp do SO>/application-assistant/<plataforma>_form/  (step_NN.html + step_NN.json +
 fields_NN.txt); sobrescreva com a env var SNAPSHOT_OUT_DIR.
-Pré-requisito: python scripts/login.py <plataforma>  (sessão salva).
+Pré-requisito (só canais logados): python scripts/login.py <plataforma>  (sessão salva).
 """
 from __future__ import annotations
 
@@ -38,13 +43,21 @@ from app.core.browser import BrowserHarness  # noqa: E402
 from app.core.session import has_session  # noqa: E402
 from app.db import engine, init_db  # noqa: E402
 from app.models import Job  # noqa: E402
+from app.platforms import REGISTRY  # noqa: E402
 
-# Saída no temp do SO (artefato de trabalho, fora do projeto; portável entre máquinas).
-# Sobrescreva com a env var SNAPSHOT_OUT_DIR se quiser outro destino.
-OUT_DIR = Path(
-    os.getenv("SNAPSHOT_OUT_DIR")
-    or Path(tempfile.gettempdir()) / "application-assistant" / "gupy_form"
-)
+
+def _out_dir(platform: str) -> Path:
+    """Saída no temp do SO (artefato de trabalho, fora do projeto; portável entre máquinas).
+    Uma pasta por plataforma; sobrescreva com a env var SNAPSHOT_OUT_DIR."""
+    return Path(
+        os.getenv("SNAPSHOT_OUT_DIR")
+        or Path(tempfile.gettempdir()) / "application-assistant" / f"{platform}_form"
+    )
+
+
+def _is_anonymous_apply(platform: str) -> bool:
+    """True se o manifest da plataforma declara apply anônimo (dispensa sessão salva)."""
+    return bool(REGISTRY.get(platform, {}).get("anonymous_apply"))
 
 # Extrator roda NA PÁGINA: coleta cada controle de formulário com o rótulo associado.
 _EXTRACT_JS = r"""
@@ -150,23 +163,29 @@ def main() -> None:
     ap.add_argument("job_id", nargs="?", help="ID da vaga no DB (ou use --url).")
     ap.add_argument("--url", help="URL direta da vaga (dispensa job_id).")
     ap.add_argument("--platform", default="gupy", help="Plataforma da sessão (default: gupy).")
+    ap.add_argument("--anon", action="store_true",
+                    help="Modo anônimo: pula o gate de sessão (implícito p/ plataformas anônimas).")
     args = ap.parse_args()
 
     if not args.job_id and not args.url:
         raise SystemExit("Informe <job_id> ou --url.")
 
     url, platform = _resolve_target(args)
-    if not has_session(platform):
+    anon = args.anon or _is_anonymous_apply(platform)
+    if not anon and not has_session(platform):
         raise SystemExit(f"Sem sessão '{platform}'. Rode: python scripts/login.py {platform}")
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"Vaga: {url}\nSessão: {platform}\nSaída: {OUT_DIR}\n")
+    out_dir = _out_dir(platform)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    mode = "ANÔNIMO (stealth, sem login)" if anon else "LOGADO (sessão salva)"
+    print(f"Vaga: {url}\nPlataforma: {platform}\nModo: {mode}\nSaída: {out_dir}\n")
 
     with BrowserHarness(headless=False) as h:
-        ctx = h.new_context(platform)
+        # Anônimo: não passa a plataforma p/ new_context (evita carregar storage_state); só stealth.
+        ctx = h.new_context(None if anon else platform)
         page = ctx.new_page()
         page.goto(url, wait_until="domcontentloaded")
-        print("Página aberta LOGADA. Clique 'Candidatar-se' e navegue pelas etapas na janela.")
+        print(f"Página aberta ({mode}). Clique 'Candidatar-se' e navegue pelas etapas na janela.")
         print("A cada tela do formulário, volte aqui e pressione ENTER para capturar. 'q' = sair.\n")
 
         step = 0
@@ -180,8 +199,8 @@ def main() -> None:
                       "Espere a tela carregar e tente ENTER de novo.")
                 continue
 
-            (OUT_DIR / f"step_{step:02d}.html").write_text(html, encoding="utf-8")
-            (OUT_DIR / f"step_{step:02d}.json").write_text(
+            (out_dir / f"step_{step:02d}.html").write_text(html, encoding="utf-8")
+            (out_dir / f"step_{step:02d}.json").write_text(
                 json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
             # Resumo legível dos campos.
@@ -200,7 +219,7 @@ def main() -> None:
                     f"name={f['name']!r} id={f['id']!r} testid={f['data_testid']!r} "
                     f"label={f['label']!r} ph={f['placeholder']!r}{opts}"
                 )
-            (OUT_DIR / f"fields_{step:02d}.txt").write_text("\n".join(lines), encoding="utf-8")
+            (out_dir / f"fields_{step:02d}.txt").write_text("\n".join(lines), encoding="utf-8")
 
             print(f"  ✓ step {step:02d}: {len(data['fields'])} campos, "
                   f"{len(data['questions'])} perguntas, {data['fileInputs']} file input(s). "
@@ -209,7 +228,7 @@ def main() -> None:
 
         ctx.close()
 
-    print(f"\nPronto. {step} snapshot(s) em {OUT_DIR}")
+    print(f"\nPronto. {step} snapshot(s) em {out_dir}")
 
 
 if __name__ == "__main__":

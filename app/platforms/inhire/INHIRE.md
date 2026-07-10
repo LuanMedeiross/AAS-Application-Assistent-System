@@ -29,8 +29,16 @@ GET /forms/public/job-id/{jobId}/subscription -> subscription form ref ({typefor
 GET /tenants/public/resolve/{slug}        -> tenant metadata (XML)
 ```
 
-- **lean item:** `jobId` (uuid), `displayName` (title), `link` (`https://<slug>.inhire.com.br/vagas/{jobId}`),
-  `careerPage`, `careerPageId`. Filtering by keyword is done on `displayName` in our code.
+- **lean item:** `jobId` (uuid), `displayName` (title), `link`, `careerPage`, `careerPageId`.
+  Filtering by keyword is done on `displayName` in our code.
+  - ⚠️ **The API's `link` is STALE:** it returns `https://<slug>.inhire.com.br/vagas/{jobId}`, but that
+    domain **no longer resolves (dead DNS)**. The live career SPA is at
+    **`https://<tenant>.inhire.app/vagas/{jobId}/{titleSlug}`** (confirmed 2026-07-10).
+  - 🔴 **The `{titleSlug}` segment is REQUIRED.** A bare `/vagas/{jobId}` renders a **black screen** —
+    the SPA never fetches the job (only the tenant config) and reCAPTCHA shows "não foi possível conectar".
+    The slug is derived client-side from `displayName` (no slug field in the API): lowercase, strip
+    accents (NFKD), non-alphanumeric → `-`, collapse/trim. `discovery.py::_slugify`/`_job_url` build it;
+    e.g. "Analista de Segurança Ofensiva" → `.../vagas/{id}/analista-de-seguranca-ofensiva`. Do NOT use `link`.
 - **detail fields:** `displayName`, `description` (HTML), `location`, `workplaceType` (`Remote`/`Hybrid`/`On-site`),
   `contractType` (`["CLT"]`…), `status`, `visibility`, `settings`, `activeJobBoards`, `privacyPolicyUrl`,
   `createdAt`, `publishedAt`, `lastPublishedAt`, `tenantName`.
@@ -94,7 +102,41 @@ plus driving the Typeform for custom questions. Both fall out naturally when Pla
 career page. So `apply.py` implements `run_auto_apply(page, ...)` and drives the page — same pattern as
 Gupy. The API layer is still used to KNOW the form (`settings`) and open status.
 
-### Flow (🔎 selectors to be captured via supervised snapshot)
+### ✅ Confirmed DOM (2026-07-10, automated capture — clavis "Analista de Segurança Ofensiva")
+The apply form renders **inline** on `/vagas/{jobId}/{slug}` (no separate navigation needed — the whole
+`<form data-component-name="JobForm" method="POST">` is already in the DOM once the SPA hydrates). It is a
+**2-step wizard**: tab "1. Informações" → tab "2. Diversidade".
+
+**Step 1 — Informações** (fill these, then click **Avançar**):
+| DOM `name=` | Type | Label | Fills from |
+|---|---|---|---|
+| `name` | text | Nome completo * | profile name |
+| `email` | email | Seu melhor email * | profile email |
+| `phoneCountry` + `phone` | tel | Celular com DDD | profile phone |
+| `linkedinUsername` | text | Linkedin * | `profile.linkedin_url` (`settings.fields: linkedin`) |
+| `country` + `district` | text | Cidade * | `profile.location` (`location`) |
+| `workModel` | radio Sim/Não | (remote pref) | `extras`/pref (`workModel`) |
+| **`resume`** | **file, *req, hidden** | — | `application.cv_pdf_path` — click btn **"Anexar currículo"** then `set_input_files` (`curriculum`) |
+| `salaryExpectation` | text | Pretensão salarial como CLT * | `extras` salary (`salary`) |
+| `isIndication` | radio Não/Sim | (referral?) | honest default (`referral`) |
+
+**Step 2 — Diversidade**:
+| DOM `name=` | Type | Notes |
+|---|---|---|
+| `questionsDiversity.genderIdentity` | hidden/select | diversity self-ID (profile) |
+| `questionsDiversity.peopleWithDisability` | hidden/select | diversity self-ID (profile) |
+| `privacyPolicy` | checkbox, hidden, **required** | LGPD consent — must check to submit |
+| `g-recaptcha-response` | hidden textarea | filled by grecaptcha v3 on submit (do not touch) |
+
+**Buttons:** `"Candidatar"` / `"Candidatar-se para a vaga"` reveal/scroll to the form · `"Anexar currículo"`
+opens the CV file picker · `"Avançar"` (disabled→enabled) advances step 1→2 · **`type=submit`
+`"Continuar inscrição"`** (disabled→enabled) is the **IRREVERSIBLE submit** — gate on `allow_real`+`confirm()`.
+Emotion CSS classes (`css-6134ia`…) are build-hashed → **select by text/`name`/`data-component-name`, not class.**
+
+**No Typeform on this job** (`/forms/.../subscription` → the inline radios cover it; `questions:['Não']`).
+Other jobs may still embed one — check `settings`/the subscription endpoint per job.
+
+### Flow (legacy sketch — superseded by the confirmed DOM above)
 ```
   goto  https://<tenant>.inhire.com.br/vagas/{jobId}   (anonymous; stealth on — SPA blocks plain headless)
         │
@@ -124,24 +166,47 @@ Gupy. The API layer is still used to KNOW the form (`settings`) and open status.
 
 ## 4. Wiring notes (to resolve when implementing)
 - **`has_session` gate:** `services.apply_application` blocks with `if not has_session("inhire")`.
-  Apply is **anonymous**, so either seed a dummy `PlatformSession` for inhire or relax that gate for
-  anonymous-channel platforms. Do NOT require `scripts/login.py inhire`.
+  Apply is **anonymous**, so the gate must be skipped. **Decision (declarative):** the manifest now
+  carries `anonymous_apply: True` — the harness/services check that flag instead of requiring a saved
+  session. `scripts/snapshot_form.py` already honors it (opens the vaga anonymous + stealth, no gate).
+  **PASSO 4 TODO:** make `services.apply_application` read `REGISTRY[platform].get("anonymous_apply")`
+  and skip the `has_session` check when true. Do NOT require `scripts/login.py inhire`.
 - **CV upload:** manifest is already `{cv:"file"}` → `application.cv_pdf_path` is rendered and ready.
 - **Stealth:** plain headless Chromium does **not** render the SPA (anti-bot). Use the harness stealth
   (`core/stealth.py`) and/or headed; confirmed the page returns 200 but React never hydrates headless.
 - **Idempotency / false positive:** mirror Gupy — only report `sent` after the confirmation response;
   a started-but-not-submitted apply is a FAILURE, not a success.
 
-## 5. Open questions (capture in the supervised snapshot / dry-run)
-1. Exact DOM: apply button, each field selector, the file input for `curriculum`.
-2. Base identity fields (name/email/phone) — are they always asked? any email OTP/verification?
-3. Typeform subscription: does it block submit? can `form_agent` answer it, or is it a separate flow?
-4. Confirmation signal after submit (text/response) to gate `sent`.
-5. Exact `POST /job-talents/` payload shape (capture via devtools during a real supervised apply).
+## 5. Open questions
+1. ✅ **Exact DOM captured** — see §3 "Confirmed DOM". Apply CTA by text; CV file input = `input[name="resume"]`.
+2. ✅ **Base identity always asked** (name/email/phone are inline step-1 fields). No email OTP seen on load.
+3. ✅ **No Typeform on the sampled job** — custom questions are inline radios; the 2-step wizard covers it.
+   (Still verify per job: a job with a subscription Typeform may add a step — handle when we hit one.)
+4. ❌ **Confirmation signal after submit — STILL TO CAPTURE** (needs a real supervised dry-run/submit; we
+   did NOT submit). Gate `sent` on the post-submit success screen, not on clicking "Continuar inscrição".
+5. ❌ **Exact `POST /job-talents/` payload — STILL TO CAPTURE** (devtools during a supervised submit).
+
+### 5.1 Automated-probe findings (2026-07-10, anonymous Chromium + stealth)
+- ✅ **SPA loads anonymous** at `https://<tenant>.inhire.app/...`: shell hydrates
+  (`main.5a7dd43c.js`, `InHire version 2026.395.0`), `#root` mounts `<main>`.
+- ✅ **reCAPTCHA Enterprise invisible confirmed live** — iframe sitekey `6LfqLA4hAAAAAD5pmdD5SJiK3j7YatTCJi_02ktE`
+  (`.../recaptcha/enterprise/anchor?...size=invisible`). Matches §3.
+- ✅ Third-party widgets present: Hand Talk (a11y), UserGuiding, Intercom, GetDemo, Hotjar, Sentry.
+- 🔴 **ROOT CAUSE of the black screen = missing title slug** (found via supervised test, user-confirmed):
+  `/vagas/{jobId}` (no slug) → the SPA fetches only tenant config, **never `/job-posts/public/pages/{jobId}`**,
+  reCAPTCHA errors ("não foi possível conectar"), `<main>` stays empty. Adding `/{titleSlug}` fixes it and
+  the job renders. **Fixed in `discovery.py` (`_job_url`/`_slugify`).** The 429/503 seen earlier were a
+  separate, self-inflicted rate-limit from repeated probes — real but secondary.
+    - **Apply should still throttle** (human cadence + backoff on 429/503) — mirror the batch-cadence TODO.
+- ❓ **Still to capture in the supervised snapshot** (now that the page renders): the apply-button selector,
+  each field selector + the `curriculum` file input, the Typeform step (if any), and the post-submit
+  confirmation signal. Re-run `snapshot_form.py` on a WITH-SLUG url and step through the form.
 
 ## 6. Files
 - `discovery.py` — multi-tenant search (X-Tenant), keyword filter on `displayName`.
 - `apply.py` — **stub today**; will hold `run_auto_apply()` (browser flow) once §5 is captured.
 - `manifest.py` — declarative; `application: {cv:"file", cover_letter:True}`.
 - Shared core to reuse: `core/form_extract.py`, `core/form_fill.py` (`set_cv_file`), `ai/form_agent.py`,
-  `core/browser.py`, `core/stealth.py`. Dev tool: `scripts/snapshot_form.py --url … --platform inhire`.
+  `core/browser.py`, `core/stealth.py`. Dev tool (anonymous, stealth — no login needed):
+  `scripts/snapshot_form.py --url https://<tenant>.inhire.com.br/vagas/<jobId> --platform inhire`
+  (the manifest's `anonymous_apply` makes it skip the session gate; `--anon` forces it for any platform).
