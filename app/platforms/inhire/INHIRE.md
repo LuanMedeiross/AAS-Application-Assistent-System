@@ -143,6 +143,19 @@ the Typeform screen with the company's questions appears. `apply.py` currently S
 standard radios; the Typeform is a separate post-submit step.) **TODO:** drive the embedded Typeform
 (iframe) after the job-talent POST — see TODO.md.
 
+**Typeform inventory (mapped 2026-07-10 by loading `form.typeform.com/to/hUKeJEGn` directly, no submit).**
+Standard Typeform; the form definition is embedded in the page (68KB JSON with `fields`). ~10 answerable
+questions, all within `form_agent`'s wheelhouse: (1) Onde você mora? (2) link de rede social (3) links de
+projetos/artigos (4) Como soube da vaga? [multiple_choice] (5) Status profissional [disponível/empregado]
+(6) empresa mais recente (7) consente receber comunicações? [Sim/Não] (8) disponibilidade p/ viagens?
+[Sim/Não] (9) já usou Macbook/iOS? [Sim/Não] (10) texto livre sobre interesse em SegInfo. Types:
+short_text, long_text, multiple_choice.
+- **Architectural constraint for Phase 2:** the Typeform is launched AFTER the job-talent is created and
+  is wired to that talent via hidden fields (jobId/talentId) in the embed → it can only be truly SUBMITTED
+  in InHire's post-submit context, not by loading the form standalone. So Phase 2 runs AFTER the
+  irreversible job-talent POST. The embed/launch mechanism (iframe src + hidden params + how Typeform
+  posts back) still needs capturing on the NEXT real submit (the test job is already used).
+
 **⚠️ Location block = custom `react-dropdown-select` widgets** (NOT `<select>`, so `form_extract` can't
 see them): `country`, `phoneCountry`, and the city field which MORPHS by country — plain `#district`
 input (disabled until a country is picked) OR `#districtBr` dropdown for Brazil. `apply.py` drives them
