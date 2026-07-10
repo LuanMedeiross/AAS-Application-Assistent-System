@@ -68,8 +68,9 @@ GET https://api.inhire.app/job-posts/public/pages/{jobId}     (X-Tenant: <empres
 - **lean** (per job): `displayName` (title), `jobId`, `link` (url), `careerPage.name` (company).
 - **detail**: `description` (HTML), `location`, `workplaceType`, `contractType`.
 - **Filtering** by keyword is done on the title (`displayName`) in our code.
-- **Target companies**: configurable via `INHIRE_TENANTS` in `.env` (slugs, e.g. `empresa` from
-  `empresa.inhire.app`). With no tenants configured, InHire discovery returns empty.
+- **Target companies**: a curated, live-validated list in `app/platforms/inhire/tenants.py`
+  (`TENANTS`, ~96 companies, cyber-security first). `INHIRE_TENANTS` in `.env` **extends** it.
+  No global search exists, so coverage == the tenant list. Detail in `app/platforms/inhire/INHIRE.md`.
 
 **Map → `JobPosting`:** `platform="inhire"`, `external_id=jobId`, `title=displayName`,
 `company=careerPage.name`, `url=link`, `location`/`description` from the detail.

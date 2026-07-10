@@ -1,8 +1,9 @@
 """Descoberta de vagas no InHire (canal api). Ver docs/PLATFORMS.md.
 
 InHire é POR EMPRESA (tenant): o endpoint público exige header X-Tenant=<empresa> e devolve
-todas as vagas daquela empresa (a busca é client-side). Então descobrimos por uma lista de
-empresas-alvo (`tenants`) e filtramos por keyword no título.
+todas as vagas daquela empresa (a busca é client-side). Então descobrimos por uma lista curada de
+empresas-alvo (`tenants.py`, validada ao vivo) e filtramos por keyword no título. `INHIRE_TENANTS`
+no `.env` estende essa lista.
 
   GET https://api.inhire.app/job-posts/public/pages/lean   (X-Tenant: <empresa>)  -> lista enxuta
   GET https://api.inhire.app/job-posts/public/pages/{jobId} (X-Tenant: <empresa>) -> detalhe (descrição)
@@ -16,6 +17,7 @@ import re
 from ...config import settings
 from ...core.http_client import HTTP_ERRORS, new_session
 from ...core.schemas import JobPosting
+from .tenants import TENANTS
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +37,10 @@ def discover(
     max_detail: int = 40,
 ) -> list[JobPosting]:
     session = session or new_session()
-    tenants = tenants if tenants is not None else settings.inhire_tenants
+    if tenants is None:
+        # Curated plugin list is the source of truth; INHIRE_TENANTS (.env) EXTENDS it (dedup,
+        # order preserved) so a private/extra tenant can be added without editing code. See tenants.py.
+        tenants = list(dict.fromkeys([*TENANTS, *settings.inhire_tenants]))
     kws = [k.lower() for k in keywords]
     seen: dict[str, JobPosting] = {}
     for tenant in tenants:
