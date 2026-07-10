@@ -9,6 +9,8 @@ MANIFEST = {
     "channel": "api",
     "endpoints": {"jobs_lean": "https://api.inhire.app/job-posts/public/pages/lean"},
     "captcha": None,
+    # Requer um arquivo de currículo real (upload): renderizamos o PDF. Ver SPEC.md §4/§5.
+    "application": {"cv": "file", "cover_letter": True},
 }
 
 

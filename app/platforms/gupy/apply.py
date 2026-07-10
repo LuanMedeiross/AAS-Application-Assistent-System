@@ -318,8 +318,9 @@ def run_auto_apply(page, *, job, application, master_cv, extras, cover,
             continue
 
         if kind == "personalize":
-            # upload do CV sob medida, se houver input de arquivo nesta etapa
-            if not cv_uploaded and set_cv_file(page, application.cv_pdf_path):
+            # upload do CV sob medida, se houver input de arquivo nesta etapa E se um PDF foi
+            # renderizado (plataforma "onplatform" não gera PDF → cv_pdf_path vazio, upload pulado)
+            if not cv_uploaded and application.cv_pdf_path and set_cv_file(page, application.cv_pdf_path):
                 cv_uploaded = True
                 log_fn("   ✓ CV enviado (upload).")
             snap = page.evaluate(EXTRACT_JS, None)

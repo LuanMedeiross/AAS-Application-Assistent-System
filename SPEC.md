@@ -71,7 +71,17 @@
 
 Each plugin = an `app/platforms/<id>/` folder with:
 - **`manifest.py`** — declarative: `id`, `name`, `channel` (`api`|`browser`|`email`),
-  `base_url`/endpoints, expected `captcha`, lazy `build()`. Registered in `platforms/__init__.py`.
+  `base_url`/endpoints, expected `captcha`, an **`application`** block (what candidacy artifacts
+  the platform consumes), lazy `build()`. Registered in `platforms/__init__.py`.
+  - **`application` block** — `{"cv": "file"|"onplatform"|"none", "cover_letter": bool}`. It is the
+    single declarative source that tells the harness which tailoring artifacts to produce, so
+    `services.tailor_application` never hard-codes platform names. `cv`: **`file`** → render the CV
+    PDF (the platform requires an uploaded/attached file, e.g. InHire); **`onplatform`** → generate
+    only the structured content (`cv_json` + language), **no PDF** (the résumé lives in the platform's
+    own builder, e.g. Gupy — the tailored content still feeds the form/screening answers, and a PDF
+    upload is optional and skipped when absent); **`none`** → no tailoring at all. `cover_letter`
+    controls whether the cover letter is generated/written. Adding a platform = fill these two fields,
+    not a new pipeline.
 - **`discovery.py`** — `discover(keywords, ctx_or_session) -> list[JobPosting]`
   (absent on the `email` channel).
 - **`apply.py`** — `run_auto_apply(page, *, job, application, master_cv, extras, cover, allow_real,
@@ -107,6 +117,12 @@ does not import `web/`, uses the normalized schemas, and the `discover`/`apply` 
   (dropping the rest), folding a headline metric (e.g. TryHackMe top 2%, standout badges) into the
   most relevant project or Achievements. Target length **1–2 pages**, ordered by relevance. Curation
   selects and rewrites real facts; it never fabricates.
+- **Artifacts are per-platform (`manifest.application`).** Tailoring is two separable steps: **generate**
+  the structured content (`cv_json` + cover, one LLM call) and **render** the file (PDF). The manifest's
+  `application` block decides which run: a **`file`** platform (InHire) generates **and** renders the PDF;
+  an **`onplatform`** platform (Gupy) generates the content but **skips the PDF** — the résumé is built in
+  the platform and the content only backs the form answers. So `cv_pdf_path` may be empty for `onplatform`;
+  the apply gate keys off generated content (`cv_json`), not the PDF.
 - **Base = `Profile.master_cv`** (real and verifiable). The tailor **reframes and emphasizes** self-study,
   projects, and home labs as concrete experience, maximizing fit to the job — **without fabricating
   employment (company/role/dates) that never existed** (it falls apart in the technical interview and the

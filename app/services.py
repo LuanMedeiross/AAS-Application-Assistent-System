@@ -19,6 +19,7 @@ from .core import audit
 from .core.schemas import TailorResult
 from .models import Application, Job, Profile
 from .pdf.render import render_cv_pdf
+from .platforms import REGISTRY
 from .web.repo import get_or_create_profile
 
 log = logging.getLogger(__name__)
@@ -40,31 +41,54 @@ def _contact(profile: Profile) -> dict:
     }
 
 
+# Bloco `application` do manifesto (o que a plataforma consome). Default conservador =
+# renderiza PDF + carta, preservando o comportamento antigo p/ plataforma sem o bloco. SPEC §4/§5.
+_DEFAULT_APPLICATION = {"cv": "file", "cover_letter": True}
+
+
+def _application_spec(platform: str) -> dict:
+    return {**_DEFAULT_APPLICATION, **REGISTRY.get(platform, {}).get("application", {})}
+
+
 def tailor_application(
     session: Session, job: Job, profile: Profile | None = None
 ) -> tuple[Application, TailorResult]:
-    """Gera CV+carta sob medida para `job`, renderiza o PDF, salva/atualiza a Application e
-    marca a vaga como `tailored`. Retorna (Application, TailorResult). Requer LLM_API_KEY.
+    """Gera o conteúdo sob medida para `job` e, conforme o manifesto da plataforma, renderiza os
+    artefatos (PDF/carta), salva/atualiza a Application e marca a vaga como `tailored`.
+    Retorna (Application, TailorResult). Requer LLM_API_KEY.
 
-    Idempotente por vaga: regenera e sobrescreve os arquivos `cv_job_<id>.pdf`/`cover_job_<id>.txt`.
+    O bloco `application` do manifesto decide o que produzir (SPEC §4/§5): `cv: "file"` renderiza o
+    PDF; `cv: "onplatform"` (Gupy) só gera o conteúdo (`cv_json`, que alimenta as respostas do
+    form_agent) e NÃO renderiza PDF. Idempotente por vaga: regenera e sobrescreve os arquivos.
     """
     profile = profile or get_or_create_profile(session)
+    spec = _application_spec(job.platform)
     result = generate(profile.to_master_cv(), {
         "title": job.title, "company": job.company,
         "location": job.location, "description": job.description,
     })
 
     settings.ensure_dirs()
-    cv_pdf = settings.generated_dir / f"cv_job_{job.id}.pdf"
-    render_cv_pdf(_contact(profile), result, cv_pdf)
-    cover_txt = settings.generated_dir / f"cover_job_{job.id}.txt"
-    cover_txt.write_text(result.cover_letter, encoding="utf-8")
-
     app_row = session.exec(
         select(Application).where(Application.job_id == job.id)
     ).first() or Application(job_id=job.id)
-    app_row.cv_pdf_path = str(cv_pdf)
-    app_row.cover_letter_path = str(cover_txt)
+
+    # PDF só quando a plataforma exige arquivo. "onplatform" fica sem cv_pdf_path (o gate de
+    # candidatura passa a checar cv_json, não o PDF — ver apply_application).
+    if spec["cv"] == "file":
+        cv_pdf = settings.generated_dir / f"cv_job_{job.id}.pdf"
+        render_cv_pdf(_contact(profile), result, cv_pdf)
+        app_row.cv_pdf_path = str(cv_pdf)
+    else:
+        app_row.cv_pdf_path = ""
+
+    if spec["cover_letter"]:
+        cover_txt = settings.generated_dir / f"cover_job_{job.id}.txt"
+        cover_txt.write_text(result.cover_letter, encoding="utf-8")
+        app_row.cover_letter_path = str(cover_txt)
+    else:
+        app_row.cover_letter_path = ""
+
     app_row.cv_json = result.cv.model_dump()
     app_row.language = result.language
     session.add(app_row)
@@ -153,7 +177,8 @@ def apply_application(
     from .core.session import has_session
 
     app_row = session.exec(select(Application).where(Application.job_id == job.id)).first()
-    if app_row is None or not app_row.cv_pdf_path:
+    # Gate = conteúdo gerado (cv_json), não o PDF: plataformas "onplatform" (Gupy) não têm PDF.
+    if app_row is None or not app_row.cv_json:
         return {"outcome": "error", "message": "Gere o CV/carta antes de candidatar-se."}
     # Idempotência: já enviada → NÃO reabre o browser (evita duplo-envio irreversível e sobe
     # Chromium à toa). `result == "sent"` só é gravado após confirmação real da Gupy (_finalized_ok

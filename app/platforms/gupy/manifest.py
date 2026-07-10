@@ -12,6 +12,9 @@ MANIFEST = {
         "jobs": "https://employability-portal.gupy.io/api/v1/jobs",
     },
     "captcha": None,  # canal api não enfrenta captcha
+    # Currículo montado na própria Gupy: geramos o conteúdo (alimenta as respostas do
+    # form_agent), mas NÃO renderizamos PDF. Ver SPEC.md §4/§5.
+    "application": {"cv": "onplatform", "cover_letter": True},
 }
 
 
