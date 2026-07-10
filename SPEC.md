@@ -102,6 +102,11 @@ does not import `web/`, uses the normalized schemas, and the `discover`/`apply` 
   **human voice not detectable as AI** (see `HUMANIZE.md`) — both mandatory: single column,
   canonical headings, mirrored keywords, skills matrix, bullets with metrics, varied sentence
   rhythm, no AI vocabulary/clichés, a 200–300 word cover letter with a real micro-episode.
+- **Curated, not dumped.** The tailor reads the job and **selects** what reinforces it: it keeps the
+  real jobs but rewrites/trims their bullets, and includes only the **1–3 most relevant projects**
+  (dropping the rest), folding a headline metric (e.g. TryHackMe top 2%, standout badges) into the
+  most relevant project or Achievements. Target length **1–2 pages**, ordered by relevance. Curation
+  selects and rewrites real facts; it never fabricates.
 - **Base = `Profile.master_cv`** (real and verifiable). The tailor **reframes and emphasizes** self-study,
   projects, and home labs as concrete experience, maximizing fit to the job — **without fabricating
   employment (company/role/dates) that never existed** (it falls apart in the technical interview and the

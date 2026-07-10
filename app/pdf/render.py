@@ -34,9 +34,32 @@ def _labels(lang: str | None) -> dict:
     return SECTION_LABELS.get((lang or "pt")[:2].lower(), SECTION_LABELS["en"])
 
 
+import re
+
+_URL_RE = re.compile(r"https?://\S+")
+# rótulo de verificação antes da URL (várias línguas), para removê-lo do texto exibido
+_VERIFY_LABEL_RE = re.compile(
+    r"[\s·\-–—]*(verifica(?:ç|c)[aã]o|verificar|verification|verify)\s*:?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _split_cert(cert: str) -> dict:
+    """Separa uma linha de certificação em {text, url}: a URL vira link curto no template
+    (evita imprimir uma URL longa que quebra feio no PDF)."""
+    m = _URL_RE.search(cert)
+    if not m:
+        return {"text": cert.strip(), "url": ""}
+    url = m.group(0).rstrip(".,;")
+    text = _VERIFY_LABEL_RE.sub("", cert[: m.start()].rstrip()).rstrip(" .·-–—")
+    return {"text": text, "url": url}
+
+
 def render_cv_html(contact: dict, result: TailorResult) -> str:
     tmpl = _env.get_template("cv.html")
-    return tmpl.render(c=contact, cv=result.cv, lang=result.language, t=_labels(result.language))
+    certs = [_split_cert(c) for c in result.cv.certifications]
+    return tmpl.render(c=contact, cv=result.cv, certs=certs,
+                       lang=result.language, t=_labels(result.language))
 
 
 def html_to_pdf(html: str, out_path: Path) -> Path:

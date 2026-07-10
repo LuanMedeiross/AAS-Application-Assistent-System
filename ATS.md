@@ -37,13 +37,43 @@ irrelevant, it is ranked low. We need both.
 - **Mirror the job's exact wording.** If the description says "stakeholder management" or
   "incident response", use the **exact** phrase — matching is usually literal. Do not swap it for
   a synonym ("executive communication").
-- **Skills matrix at the top.** The recruiter/ATS scans tools and technologies before the work
-  history. List the skills/tools from the job that you truly command (even if from a lab).
-- **Bullets with numbers.** "Configured a SIEM (Wazuh) covering 12 endpoints, reducing triage
-  time by 30%" is worth far more than "worked with SIEM". Goal: a metric in 60–70% of bullets.
-- **Specific summary**, not generic. A good summary names a certification, cites 3 concrete
-  skills and a tangible project, and states the target role. Bad: "Seeking a challenging position
+- **Skills matrix at the top, grouped into categories** (2026 practice). Placed right after the
+  summary (the ATS parses skills first). Do **not** dump one long comma-run: pick **10–15** skills
+  the job asks for and you truly command, and split them into **3–5 labeled categories** (e.g.
+  "Offensive Security", "AppSec & Code", "Tools", "Networking"), ordered by relevance to the job.
+  Plain text only — **no bars, stars, dots, or "% proficient"** (ATS can't read them; recruiters
+  distrust them). Every listed skill must also appear **proven in a bullet** (the list is the
+  inventory; the bullet is the proof). This section is **hard/technical skills only**. Mirror the
+  job's exact wording; for a key acronym give both forms once, e.g. "SAST (Static Application
+  Security Testing)".
+- **No standalone soft-skills section by default (2026).** The ATS does not filter soft skills, and
+  "communication/teamwork/proactivity" sit on every resume, so a list of them is dead space that
+  dilutes your technical keywords. **Prove** soft skills inside experience bullets tied to an outcome
+  ("communicated findings to dev and management, prioritizing fixes") instead of listing adjectives.
+  Add a short 2–3 item soft-skills line **only when the job explicitly asks** for soft skills /
+  behavioral fit, using the ones the posting names.
+- **Experience bullets (XYZ formula).** Each bullet: **action verb + scope/context + measurable
+  result** ("accomplished X, measured by Y, by doing Z"). "Configured a SIEM (Wazuh) covering 12
+  endpoints, reducing triage time by 30%" beats "worked with SIEM". Start with a strong verb, never
+  a weak/passive opener ("responsible for", "helped with", "assisted", "worked on"). **4–6 bullets**
+  for the most recent/relevant role, **2–3** for older/less relevant ones; 1–2 lines each. Quantify
+  wherever a **real** number exists (goal ~60% of bullets); where there is none, give concrete scope
+  (tools, target type, methodology) instead of a vague duty — **never invent a number or scale**.
+- **Summary, not objective (2026).** Lead with a **summary** (a summary gets far more callbacks than
+  an objective; the objective is near-invisible to the ATS). Formula: **[role + seniority] + [top
+  skills the job asks for] + [your strongest quantified achievement as a credibility anchor]**, in
+  **2–4 sentences**. Name a certification and a concrete project/lab, mirror the job's keywords, and
+  focus on the **value delivered** — do **not** end with an objective tail ("seeking an opportunity
+  to…", "open to…"). Prefer impersonal phrasing (avoid "I/my"). Bad: "Seeking a challenging position
   in cybersecurity".
+- **One metric, one home — no repetition.** Each achievement/number appears **once**, contextualized
+  where it was earned, not copy-pasted across sections: a **bug-bounty** result (findings, severity,
+  ranking) goes as a **bullet in the bug-bounty experience** ("Found 7 high-impact bugs (3 critical)
+  in one program in a month, reaching the platform's Top 20"), not a floating line; a **study/lab**
+  metric (top X%, rooms/badges) goes in that **project**. The summary may carry **at most one** anchor
+  metric and only if it is not repeated elsewhere; if the metrics already live in context, keep the
+  summary qualitative. A standalone Achievements section is only for feats with no natural home. The
+  cover letter never repeats the CV's headline verbatim — it retells it as its own micro-episode.
 - **Acronyms spelled out + abbreviation** (e.g., "CompTIA Security+ (Sec+)", "Active Directory
   (AD)") — covers both ways the ATS searches.
 
@@ -58,7 +88,18 @@ capability with real, verifiable material**, positioned for the job:
   lateral movement with BloodHound/Impacket."
 - **CTFs and platforms** (HackTheBox, TryHackMe, bug bounty) with concrete hours/results.
   E.g.: "200+ hours on TryHackMe; solved N machines at level X; write-ups published."
-- **Certifications** (and in progress) in a dedicated section near the top.
+- **2–4 projects, quality over quantity**, each formatted like a mini-experience (name, what you
+  did, technique, measurable outcome). For a junior, this is decisive evidence of initiative.
+- **Verifiable profile link.** Put the TryHackMe/HackTheBox/GitHub profile URL in the header (near
+  LinkedIn/portfolio) so a recruiter can verify claims like "top 2%, 179 rooms" — a documented
+  portfolio outweighs a polished but unverifiable résumé.
+- **Certifications** in a dedicated section. Format each as **"Name (acronym) — Issuer, Year"** with
+  a **verification link** when available (recruiters can't verify a bare title, and ATS parses it
+  worse). Order by relevance to the job, then recency. List an **in-progress** cert only if relevant
+  and finishing within ~6 months ("(in progress, expected MM/YYYY)"). Never leave a date blank.
+- **Education placement is a career-stage call.** Recent grad / no experience → education high (after
+  the summary). With real experience (even junior), keep **experience first** and education below.
+  In-progress degree always carries an **expected completion** date.
 - **Honest reframing:** self-study, projects, and labs are **real, demonstrable experience** —
   they go in the experience/projects section with action verbs and metrics. This is different
   from inventing a job at a company that never existed (we do not do this: it breaks down in the

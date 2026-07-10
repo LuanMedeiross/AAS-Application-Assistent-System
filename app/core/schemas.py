@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # --- Saídas da IA (validadas antes de usar) ---
@@ -16,10 +16,25 @@ class RankResult(BaseModel):
     missing: list[str] = []
 
 
+class SkillGroup(BaseModel):
+    """Competência técnica agrupada por categoria (ATS 2026: 3-5 categorias rotuladas)."""
+    category: str = ""
+    items: list[str] = []
+
+
 class TailoredCV(BaseModel):
     summary: str = ""
-    skills: list[str] = []
+    # Skills técnicas AGRUPADAS por categoria. Aceita também uma lista plana de strings
+    # (o validador a envolve num único grupo sem rótulo), para tolerar saídas antigas do modelo.
+    skills: list[SkillGroup] = []
     soft_skills: list[str] = []
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def _coerce_skills(cls, v):
+        if isinstance(v, list) and v and all(isinstance(x, str) for x in v):
+            return [{"category": "", "items": v}]
+        return v
     experiences: list[dict] = []
     projects: list[dict] = []
     education: list[dict] = []
