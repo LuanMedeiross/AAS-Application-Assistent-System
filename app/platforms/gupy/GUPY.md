@@ -23,13 +23,29 @@ receives `page`/`session` from the harness (`scripts/auto_apply.py` owns the `Br
 | `jobName` | text search on the title | **it's `jobName`, not `name`** (`name` → HTTP 400) |
 | `limit` | page size | **max. 100** (`>100` → returns empty) |
 | `offset` | pagination | add `limit` until exhausted |
-| `workplaceType` | `remote` \| `hybrid` \| `on-site` | filters server-side, **1 value per request** |
+| `workplaceType` | `remote` \| `hybrid` \| `on-site` | server-side; **multi-value by comma** (`remote,hybrid`) |
 | `isRemoteWork` | `true` | == `workplaceType=remote` |
 | `state` | FULL name ("São Paulo") | "SP" → 0 results |
 | `city` | city name | |
-| `type` | `vacancy_type_effective` \| `..._internship` \| `..._talent_pool` \| `..._temporary` \| `..._associate` \| `vacancy_legal_entity` | filters by job type |
+| `type` | `vacancy_type_effective` \| `..._internship` \| `..._talent_pool` \| `..._temporary` \| `..._associate` \| `vacancy_legal_entity` | server-side; **multi-value by comma** |
+| `companyId` | single company id | **enumerates ALL of a company's jobs** (no `jobName` needed); singular only (`companyIds`/`ids` → 400) |
 
-**There are NO** date/ordering filters: `orderBy`, `sort`, `publishedSince` → **HTTP 400**.
+**Multi-value semantics (2026, empirically confirmed — corrects the old "1 value per request"):**
+comma inside a param = **OR** (`workplaceType=remote,hybrid` == exact union); **distinct params = AND**
+(`type=eff,int` **&** `workplaceType=remote,hybrid` == exact intersection). So we push type+model
+**server-side** (see `_server_filters` in `discovery.py`) instead of filtering client-side — on a broad
+term this captures far more relevant jobs within the same `offset` budget (A/B: "analista" +214 relevant
+in 3 pages).
+
+**Strict allowlist — any unknown param → HTTP 400** (generic `{"message":"Bad Request"}`, no schema
+leak). Confirmed rejected: `orderBy`, `sort`, `order`, `sortBy`, `publishedSince`, `publishedDate`,
+`status`, `open`, `active`, `seniority`, `jobLevel`, `roleId`, `category`, `q`, `search`, `name`,
+`remoteWork`. **⇒ there is NO date/ordering/status filter server-side** — recency + open stay client-side.
+
+**Sibling endpoints (same host):** `GET /api/v1/jobs/{id}` (detail — same fields, **no `status`**),
+`GET /api/v1/companies` (paginated company directory; **no name search** → 400),
+`GET /api/v1/jobs/suggestions` (exists, wants an undiscovered numeric param — low value). `jobName`
+empty/absent → lists **all** jobs (full enumeration possible).
 
 ### ⚠️ `pagination.total` is BROKEN
 It reports only the page size (capped at `limit`), not the real total. E.g.: "segurança da
@@ -64,11 +80,15 @@ whether the posting is open; see §3).
 
 ## 3. Project filters (recency + open) — client-side
 
-The API doesn't filter by date/status; we do it client-side, in **cheap → expensive** order:
+**Type/Model are filtered SERVER-SIDE** (comma multi-value, see above); the API has no date/status
+filter, so recency + open stay client-side. Order, **cheap → expensive**:
 
-1. **Type** (`type ∈ {vacancy_type_effective, vacancy_type_internship}` by default — full-time + internship).
-2. **Model** (`workplaceType ∈ {remote, hybrid}` — prioritize remote; no purely on-site).
-3. **Recency:** discard `publishedDate` > **28 days** (there are jobs with 1900+ days listed!).
+1. **Type** (`type ∈ {vacancy_type_effective, vacancy_type_internship}` by default — full-time + internship)
+   — sent as `type=vacancy_type_effective,vacancy_type_internship` in the query. A client-side re-check
+   remains only as a **safety net** (normally drops 0).
+2. **Model** (`workplaceType ∈ {remote, hybrid}` — prioritize remote; no purely on-site) — sent as
+   `workplaceType=remote,hybrid` in the query (same client-side safety net).
+3. **Recency:** discard `publishedDate` > **28 days** (there are jobs with 1900+ days listed!) — client-side.
 4. **Open:** see below. Only runs on the survivors (this is the expensive step: 1 GET per job).
 
 ### ⚠️ How to know whether the job is OPEN

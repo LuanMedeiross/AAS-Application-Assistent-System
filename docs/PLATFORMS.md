@@ -38,14 +38,17 @@ apply step of Phase 3/6.
 - `jobName` (text, required to filter), `limit` (**max. 100**; >100 → empty), `offset` (paginates).
 - `pagination.total` is **broken** (it only reports the page size) — paginate by `offset` until
   fewer than `limit` come back.
-- Server-side filters that work (1 value each): `workplaceType` (`remote`|`hybrid`|`on-site`),
-  `isRemoteWork=true`, `state` (full name, e.g. "São Paulo"; "SP"→0), `city`, `type`
-  (`vacancy_type_effective`|`vacancy_type_internship`|`vacancy_type_talent_pool`|…).
-- There is **no** server-side date/status filter: `orderBy`/`sort`/`publishedSince` → HTTP 400.
+- Server-side filters (**multi-value by comma** = OR; distinct params = AND): `workplaceType`
+  (`remote`|`hybrid`|`on-site`), `isRemoteWork=true`, `state` (full name, e.g. "São Paulo"; "SP"→0),
+  `city`, `type` (`vacancy_type_effective`|`vacancy_type_internship`|`vacancy_type_talent_pool`|…),
+  `companyId` (enumerates a whole company). Any unknown param → HTTP 400 (strict allowlist).
+- There is **no** server-side date/status/ordering filter: `orderBy`/`sort`/`publishedSince`/`status`
+  → HTTP 400. Full detail + endpoints in `app/platforms/gupy/GUPY.md`.
 
-**Project rule (recency + open), applied client-side in discovery:**
-- Type/model: since the API only accepts 1 value, we filter client-side. Default: `type ∈ {effective,
-  internship}` and `workplaceType ∈ {remote, hybrid}` (prioritize remote).
+**Project rule (recency + open):**
+- Type/model: pushed **server-side** via comma multi-value (`type=eff,int` + `workplaceType=remote,hybrid`),
+  so pagination isn't wasted on discarded jobs. Default: `type ∈ {effective, internship}` and
+  `workplaceType ∈ {remote, hybrid}` (prioritize remote). A client-side re-check stays as a safety net.
 - Recency: discard `publishedDate` > 28 days (there are jobs listed with 1900+ days).
 - **Open:** `applicationDeadline` is USELESS (it stays in the future even on a closed job). The
   reliable signal is the **status on the career page**: it is Next.js SSR and embeds in

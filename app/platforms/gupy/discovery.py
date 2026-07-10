@@ -25,8 +25,10 @@ log = logging.getLogger(__name__)
 
 JOBS_URL = "https://employability-portal.gupy.io/api/v1/jobs"
 
-# Filtros padrão (decisão do usuário). `type` e `workplaceType` são filtrados client-side porque
-# a API só aceita 1 valor por request. Ver docs/PLATFORMS.md (estudo da API).
+# Filtros padrão (decisão do usuário). `type` e `workplaceType` são empurrados SERVER-SIDE:
+# a API aceita multi-valor por vírgula (OR dentro do param; params distintos = AND). Isso evita
+# gastar o orçamento de paginação com vagas que seriam descartadas — em termo amplo, captura muito
+# mais vaga relevante no mesmo `max_pages`. Ver GUPY.md §1/§3 (estudo empírico 2026).
 DEFAULT_TYPES = frozenset({"vacancy_type_effective", "vacancy_type_internship"})  # efetiva + estágio
 DEFAULT_WORKPLACES = frozenset({"remote", "hybrid"})  # priorizar remoto (+ híbrido; sem presencial puro)
 PAGE_LIMIT = 100  # máximo aceito pela API (limit>100 retorna vazio)
@@ -100,14 +102,27 @@ def _to_posting(job: dict) -> JobPosting:
     )
 
 
-def _fetch_all(session, kw: str, max_pages: int) -> list[dict]:
-    """Pagina uma keyword por offset até esgotar (pagination.total é furado — não confiar nele)."""
+def _server_filters(types: frozenset, workplaces: frozenset) -> dict:
+    """Params que a API aceita server-side (multi-valor por vírgula). Vazio = sem esse filtro."""
+    params = {}
+    if types:
+        params["type"] = ",".join(sorted(types))
+    if workplaces:
+        params["workplaceType"] = ",".join(sorted(workplaces))
+    return params
+
+
+def _fetch_all(session, kw: str, max_pages: int, filters: dict) -> list[dict]:
+    """Pagina uma keyword por offset até esgotar (pagination.total é furado — não confiar nele).
+    `filters` (type/workplaceType) vão na query: a API já devolve só o relevante."""
     jobs: list[dict] = []
     offset = 0
     for _ in range(max_pages):
         try:
             r = session.get(
-                JOBS_URL, params={"jobName": kw, "offset": offset, "limit": PAGE_LIMIT}, timeout=25
+                JOBS_URL,
+                params={"jobName": kw, "offset": offset, "limit": PAGE_LIMIT, **filters},
+                timeout=25,
             )
         except HTTP_ERRORS as e:  # noqa: PERF203
             log.warning("Gupy discovery falhou (kw=%s): %s", kw, e)
@@ -135,15 +150,16 @@ def discover(
 ) -> list[JobPosting]:
     """Busca vagas por keyword e devolve JobPosting[] deduplicado por id.
 
-    Pipeline (barato → caro): pagina tudo (limit=100 + offset) → filtra por TIPO (efetiva/estágio)
-    e MODELO (remoto/híbrido) client-side → filtra RECÊNCIA (≤max_age_days) → verifica se ainda
-    está ABERTA (status "published" no __NEXT_DATA__). Regra do projeto: recência + aberta.
-    `types`/`workplaces` vazios = sem esse filtro. Ver docs/PLATFORMS.md.
+    Pipeline (barato → caro): pagina tudo (limit=100 + offset) com TIPO (efetiva/estágio) e MODELO
+    (remoto/híbrido) filtrados SERVER-SIDE (multi-valor por vírgula) → filtra RECÊNCIA
+    (≤max_age_days) client-side → verifica se ainda está ABERTA (status "published" no __NEXT_DATA__).
+    Regra do projeto: recência + aberta. `types`/`workplaces` vazios = sem esse filtro. Ver GUPY.md.
     """
     session = session or new_session()
+    filters = _server_filters(types, workplaces)
     seen_raw: dict[str, dict] = {}
     for kw in keywords:
-        for job in _fetch_all(session, kw, max_pages):
+        for job in _fetch_all(session, kw, max_pages, filters):
             jid = str(job.get("id", ""))
             if jid and jid not in seen_raw:
                 seen_raw[jid] = job
@@ -151,6 +167,8 @@ def discover(
     total = len(seen_raw)
     kept, dropped_type, dropped_old, closed = [], 0, 0, 0
     for job in seen_raw.values():
+        # Rede de segurança: a API já filtrou server-side, então isto normalmente dropa 0
+        # (protege caso a API mude ou devolva algo fora do filtro).
         if types and job.get("type") not in types:
             dropped_type += 1
             continue
