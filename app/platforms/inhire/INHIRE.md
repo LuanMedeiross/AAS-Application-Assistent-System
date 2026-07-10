@@ -133,8 +133,15 @@ opens the CV file picker · `"Avançar"` (disabled→enabled) advances step 1→
 `"Continuar inscrição"`** (disabled→enabled) is the **IRREVERSIBLE submit** — gate on `allow_real`+`confirm()`.
 Emotion CSS classes (`css-6134ia`…) are build-hashed → **select by text/`name`/`data-component-name`, not class.**
 
-**No Typeform on this job** (`/forms/.../subscription` → the inline radios cover it; `questions:['Não']`).
-Other jobs may still embed one — check `settings`/the subscription endpoint per job.
+**⚠️ POST-SUBMIT TYPEFORM (company questions) — NOT handled yet.** This job DOES have a subscription
+Typeform (`GET /forms/public/job-id/{jobId}/subscription` → `{"typeformId":"hUKeJEGn","type":"subscription"}`).
+It is **NOT inline** — it opens **AFTER** clicking "Continuar inscrição" (i.e. AFTER the job-talent is
+created, POST 201). Sequence confirmed live: fill identity+diversity → submit → job-talent 201 → **then**
+the Typeform screen with the company's questions appears. `apply.py` currently STOPS at the job-talent
+201 and returns `sent` — it does **NOT** answer the Typeform, so those company answers are left BLANK.
+(An earlier note here wrongly said "no Typeform" — the inline `questions` extraction only saw the
+standard radios; the Typeform is a separate post-submit step.) **TODO:** drive the embedded Typeform
+(iframe) after the job-talent POST — see TODO.md.
 
 **⚠️ Location block = custom `react-dropdown-select` widgets** (NOT `<select>`, so `form_extract` can't
 see them): `country`, `phoneCountry`, and the city field which MORPHS by country — plain `#district`
