@@ -187,7 +187,10 @@ def apply_application(
     if app_row.result in ("sent", "not_advanced"):
         return {"outcome": "already_applied",
                 "message": "Candidatura já finalizada anteriormente (não reabri o navegador)."}
-    if not has_session(job.platform):
+    # Anonymous-apply platforms (manifest `anonymous_apply`, e.g. InHire) apply WITHOUT a candidate
+    # login — the public form needs no session, so the has_session gate would block them wrongly.
+    anonymous = bool(REGISTRY.get(job.platform, {}).get("anonymous_apply"))
+    if not anonymous and not has_session(job.platform):
         return {"outcome": "error",
                 "message": f"Sem sessão '{job.platform}'. Rode: python scripts/login.py {job.platform}"}
     mod = import_module(f"app.platforms.{job.platform}.apply")

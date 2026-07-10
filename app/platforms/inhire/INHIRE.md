@@ -204,7 +204,10 @@ Other jobs may still embed one — check `settings`/the subscription endpoint pe
 
 ## 6. Files
 - `discovery.py` — multi-tenant search (X-Tenant), keyword filter on `displayName`.
-- `apply.py` — **stub today**; will hold `run_auto_apply()` (browser flow) once §5 is captured.
+- `apply.py` — ✅ **`run_auto_apply()` implemented** (generic engine like Gupy: dynamic per-job field
+  extraction scoped to the JobForm → `form_agent` answers → fill → CV upload → advance wizard → gated
+  submit). Known gap: react-select `country`/`phoneCountry` not auto-filled yet → `incomplete` if required.
+  Gate `has_session` is skipped for inhire via the manifest `anonymous_apply` flag (`services.py`).
 - `manifest.py` — declarative; `application: {cv:"file", cover_letter:True}`.
 - Shared core to reuse: `core/form_extract.py`, `core/form_fill.py` (`set_cv_file`), `ai/form_agent.py`,
   `core/browser.py`, `core/stealth.py`. Dev tool (anonymous, stealth — no login needed):
