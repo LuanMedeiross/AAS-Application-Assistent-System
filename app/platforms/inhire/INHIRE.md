@@ -136,6 +136,15 @@ Emotion CSS classes (`css-6134ia`…) are build-hashed → **select by text/`nam
 **No Typeform on this job** (`/forms/.../subscription` → the inline radios cover it; `questions:['Não']`).
 Other jobs may still embed one — check `settings`/the subscription endpoint per job.
 
+**⚠️ Location block = custom `react-dropdown-select` widgets** (NOT `<select>`, so `form_extract` can't
+see them): `country`, `phoneCountry`, and the city field which MORPHS by country — plain `#district`
+input (disabled until a country is picked) OR `#districtBr` dropdown for Brazil. `apply.py` drives them
+via `_select_dropdown` (open → type in the `input[placeholder="Pesquisar"]` → click the matching option)
+and gets the country/city VALUES from `form_agent` with clean prompts (`_fill_location`). Also: the
+phone field ("Celular com DDD") wants DIGITS ONLY (the `+55` goes in `phoneCountry`) — a "+55 " prefix
+invalidates it and keeps "Avançar" disabled. React validates async → poll the step button
+(`_wait_step_button`), the form's own enabled/disabled state is the source of truth for required fields.
+
 ### Flow (legacy sketch — superseded by the confirmed DOM above)
 ```
   goto  https://<tenant>.inhire.com.br/vagas/{jobId}   (anonymous; stealth on — SPA blocks plain headless)
